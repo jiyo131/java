@@ -1,0 +1,27 @@
+{
+  "name": "swallowed-star-vue",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "狐妖小红娘 · 涂山红线登录/注册（Vue 3 + Vite）",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "lint": "eslint . --fix",
+    "format": "prettier --write \"src/**/*.{js,vue,css}\""
+  },
+  "dependencies": {
+    "vue": "^3.4.21",
+    "vue-router": "^4.3.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.13.0",
+    "@vitejs/plugin-vue": "^5.0.4",
+    "eslint": "^9.13.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-vue": "^9.29.0",
+    "prettier": "^3.3.3",
+    "vite": "^5.2.8"
+  }
+}

@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>首页</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: "PingFang SC", "Microsoft YaHei", system-ui, -apple-system, "Segoe UI", sans-serif;
+            background: linear-gradient(160deg, #1c0d16, #2a1120 60%, #3a1424);
+            color: #ffeef2;
+        }
+        .card {
+            width: min(460px, 92vw);
+            padding: 34px 30px 28px;
+            border-radius: 18px;
+            background: rgba(46, 16, 30, .62);
+            border: 1px solid rgba(255, 178, 199, .2);
+            box-shadow: 0 24px 60px rgba(20, 4, 12, .6);
+            text-align: center;
+        }
+        h1 {
+            margin: 0 0 8px;
+            font-size: 24px;
+            letter-spacing: 4px;
+            color: #ff9eb5;
+        }
+        .sub {
+            margin: 0 0 22px;
+            font-size: 12.5px;
+            letter-spacing: 2px;
+            color: #c79aa9;
+        }
+        .hello {
+            margin: 0 0 6px;
+            font-size: 15px;
+            color: #ffeef2;
+        }
+        .hello b {
+            color: #ffd9a0;
+            letter-spacing: 1px;
+        }
+        .tip {
+            margin: 0 0 22px;
+            font-size: 12px;
+            line-height: 1.9;
+            color: #c79aa9;
+        }
+        .actions {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        a.btn {
+            display: inline-block;
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-size: 13px;
+            letter-spacing: 1px;
+            text-decoration: none;
+            border: 1px solid rgba(255, 178, 199, .35);
+            color: #ff9eb5;
+            transition: .2s;
+        }
+        a.btn:hover {
+            background: rgba(255, 158, 181, .12);
+        }
+        a.btn.primary {
+            border-color: transparent;
+            color: #451020;
+            font-weight: 700;
+            background: linear-gradient(135deg, #ff9eb5, #ff5c7a);
+        }
+        a.btn.primary:hover {
+            filter: brightness(1.06);
+        }
+    </style>
+</head>
+<body>
+<main class="card">
+    <h1>登录成功</h1>
+    <p class="sub">SPRING MVC · 首页</p>
+
+    <p class="hello">
+        欢迎回来，<b th:text="${username} ?: '游客'">游客</b>
+    </p>
+    <p class="tip">
+        已通过后台表单登录进入首页。<br>
+        前台 Vue 版入口：<span>http://localhost:5173</span>
+    </p>
+
+    <div class="actions">
+        <a class="btn primary" href="http://localhost:5173/">进入涂山首页</a>
+        <a class="btn" th:href="@{/user/to_login}">退出登录</a>
+    </div>
+</main>
+</body>
+</html>

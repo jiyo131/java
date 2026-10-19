@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>狐妖小红娘 · 服务入口</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: "PingFang SC", "Microsoft YaHei", system-ui, -apple-system, "Segoe UI", sans-serif;
+            background: linear-gradient(160deg, #1c0d16, #2a1120 60%, #3a1424);
+            color: #ffeef2;
+        }
+        .card {
+            width: min(480px, 92vw);
+            padding: 34px 30px 28px;
+            border-radius: 18px;
+            background: rgba(46, 16, 30, .62);
+            border: 1px solid rgba(255, 178, 199, .2);
+            box-shadow: 0 24px 60px rgba(20, 4, 12, .6);
+            text-align: center;
+        }
+        h1 {
+            margin: 0 0 8px;
+            font-size: 24px;
+            letter-spacing: 5px;
+            color: #ff9eb5;
+        }
+        .sub {
+            margin: 0 0 22px;
+            font-size: 11.5px;
+            letter-spacing: 3px;
+            color: #c79aa9;
+        }
+        .status {
+            margin: 0 0 20px;
+            padding: 10px 14px;
+            font-size: 12.5px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 178, 199, .25);
+            color: #c79aa9;
+        }
+        .status.ok { color: #5fe0a8; border-color: rgba(95, 224, 168, .45); background: rgba(95, 224, 168, .1); }
+        .status.err { color: #ff4d6d; border-color: rgba(255, 77, 109, .45); background: rgba(255, 77, 109, .1); }
+        .actions {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        a.btn {
+            display: block;
+            padding: 12px 20px;
+            border-radius: 12px;
+            font-size: 13.5px;
+            letter-spacing: 1px;
+            text-decoration: none;
+            border: 1px solid rgba(255, 178, 199, .35);
+            color: #ff9eb5;
+            transition: .2s;
+        }
+        a.btn:hover { background: rgba(255, 158, 181, .12); }
+        a.btn.primary {
+            border-color: transparent;
+            color: #451020;
+            font-weight: 700;
+            background: linear-gradient(135deg, #ff9eb5, #ff5c7a 70%, #f7b26b);
+            box-shadow: 0 12px 26px rgba(255, 92, 122, .34);
+        }
+        a.btn.primary:hover { filter: brightness(1.05); }
+        .tip {
+            margin: 22px 0 0;
+            font-size: 11.5px;
+            line-height: 2;
+            color: #c79aa9;
+            text-align: left;
+        }
+        .tip code {
+            padding: 1px 6px;
+            border-radius: 5px;
+            font-size: 11px;
+            color: #ffd9a0;
+            background: rgba(255, 217, 160, .12);
+        }
+        .tip b { color: #ffd9a0; font-weight: 600; }
+    </style>
+</head>
+<body>
+<main class="card">
+    <h1>狐妖小红娘</h1>
+    <p class="sub">FOX SPIRIT · MATCHMAKER · 服务入口</p>
+
+    <p id="status" class="status">正在检测前端服务…</p>
+
+    <div class="actions">
+        <a id="spa-link" class="btn primary" href="http://localhost:5173/">进入主应用（推荐）</a>
+        <a class="btn" href="/user/to_login">教学链路 · Thymeleaf 表单登录</a>
+    </div>
+
+    <p class="tip">
+        · 主应用是 Vue3 前端，需先启动：<code>npm run dev</code>（端口 5173），
+        或直接运行项目根目录的 <code>start.bat</code> 一键启动全部服务。<br>
+        · 演示账号：<b>admin / 123456</b>（教学链路也支持这个账号，或口令 <b>123</b>）
+    </p>
+</main>
+
+<script>
+    // 后端根路径（8081）不是应用本体：检测到前端在跑就自动送过去，省得走错到教学老页面
+    (function () {
+        var host = location.hostname || 'localhost'
+        var spaUrl = location.protocol + '//' + host + ':5173/'
+        var link = document.getElementById('spa-link')
+        var status = document.getElementById('status')
+        link.href = spaUrl
+
+        if (!window.fetch) {
+            status.textContent = '请手动点击下方按钮进入主应用'
+            return
+        }
+        fetch(spaUrl, { mode: 'no-cors', cache: 'no-store' })
+            .then(function () {
+                status.className = 'status ok'
+                status.textContent = '前端已就绪，正在进入主应用…（若未自动跳转请点下方按钮）'
+                setTimeout(function () { location.href = spaUrl }, 1200)
+            })
+            .catch(function () {
+                status.className = 'status err'
+                status.textContent = '未检测到前端服务（' + spaUrl + '），请先启动前端再访问；下方教学链路可直接使用。'
+            })
+    })()
+</script>
+</body>
+</html>
