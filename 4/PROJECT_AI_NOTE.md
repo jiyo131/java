@@ -45,6 +45,12 @@
 - Maven 不在 PATH → 用 IDEA 自带 Maven 绝对路径（脚本已处理）。
 - MySQL 客户端不在 PATH → 脚本用绝对路径。
 - node_modules / target 每次重置被删 → 脚本每次重新 install / package。
+- **2026-10-21 修复「脚本路径错误」**：重置后 `node_modules` 往往只留下 108 个**空壳目录**
+  （有文件夹、0 个文件），原脚本用 `IF NOT EXIST node_modules` 判断，会误判「已安装」而跳过
+  `npm install`，于是 `npm run dev` 报 `Cannot find module ...\node_modules\vite\bin\vite.js`
+  （表现为路径错误 / 'vite' 不是内部或外部命令）。现将判据改为 `node_modules\vite\package.json`，
+  并在检测到空壳时自动 `rmdir /s /q node_modules` 后重装；同时增加项目目录、mysql 客户端、
+  构建产物的存在性校验与明确报错，脚本开头加 `chcp 936` 固定中文不乱码。
 - 若重置把 `~/.m2` 也清了，首次 `mvn package` 需联网下载依赖。
 - 后端根路径 `http://127.0.0.1:8081/` 由 `static/index.html`（welcome page）提供。
   **2026-10-16 改造**：原来是教学遗留的 Hello World 页（链接直接进 Thymeleaf 老登录页，容易走错），
