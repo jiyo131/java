@@ -26,6 +26,23 @@ public class TokenStore {
         return store.get(token);
     }
 
+    /**
+     * 从 Authorization 头解析用户 id（支持 "Bearer xxx" 与裸 token），未登录返回 null。
+     * 首页检索 / 详情接口允许匿名访问，登录时仅用于检索日志归属。
+     */
+    public Long resolveUserId(String authorization) {
+        if (authorization == null) {
+            return null;
+        }
+        String t = authorization.trim();
+        if (t.startsWith("Bearer ")) {
+            t = t.substring(7).trim();
+        } else if (t.startsWith("Bearer")) {
+            t = t.substring(6).trim();
+        }
+        return t.isEmpty() ? null : store.get(t);
+    }
+
     public void remove(String token) {
         store.remove(token);
     }
