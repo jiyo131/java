@@ -104,3 +104,34 @@
   `.nav-count`、`.btn-clear` 样式块；原 `.star-card` 姻缘档案样式已被 `.char-card` 取代（无其他引用）。
 - 验证方式：CDP 真实时间驱动 Chrome（登录填表 → /home → 搜索/分类/弹窗/Esc/退出），全项通过；
   注意 `--virtual-time-budget` 下 CSS transition 的 leave 阶段不会完成，会造成「弹窗关不掉」的假象。
+
+## 9. 后台管理系统（2026-10-28 开发）
+首页导航栏右侧新增「后台管理」按钮（金色锁图标，`Home.vue` `.nav-user` 内 / `style.css` `.btn-admin`），
+点击进入 `/admin/login` 后台登录页（**仅登录、无注册**，账号限定 `admin`，即演示账号 admin/123456）。
+登录后进入 `/admin`（默认跳 `/admin/entries`），对首页「涂山人物志」展示数据进行管理。
+
+- 前端（swallowed-star-vue）：
+  - 路由：`/admin/login`、`/admin`（children: `entries` 档案管理 / `categories` 分类管理）；
+    守卫用**独立 token 键 `ss_admin_token`**（`router/index.js`），与前台 `ss_token` 互不影响。
+  - `src/api/admin.js`：独立请求层（复制 http.js 逻辑换 token 键）+ 全部后台接口封装；
+    会话存 `ss_admin_session`。
+  - 页面：`views/AdminLogin.vue`（登录）、`views/admin/AdminLayout.vue`（顶栏+6 张统计卡，
+    provide `adminReload` 供子页刷新统计）、`AdminEntries.vue`（档案表格：关键词/分类/状态筛选、
+    分页、新增/编辑弹窗、上下架、删除）、`AdminCategories.vue`（分类树：新增一级/子分类、编辑、
+    删除，最多三级）。
+- 后端（springBootTest，均在 `controller/admin/`，全部接口先过 `AdminGuard` 校验）：
+  - `service/AdminGuard.java`：约定 star_user 表 username='admin' 即管理员（无单独角色字段）。
+  - `AdminAuthController` `/api/admin/auth/`：login（非 admin 账号明确拒绝）/ me / logout。
+  - `AdminEntryController` `/api/admin/entries`：GET 列表（keyword/categoryId/status 筛选，
+    含下架数据，一级分类自动带子分类）、POST 新增、PUT /{id} 编辑、PUT /{id}/status 上下架、
+    DELETE /{id}。校验：名称必填且唯一、分类必存在、各字段长度。
+  - `AdminCategoryController` `/api/admin/categories`：GET tree（**用 treeAll 含停用分类**）、
+    POST/PUT/DELETE（code 唯一、层级 ≤3、父分类不能选自己；删除时有子分类或档案则拒绝）。
+  - `AdminOverviewController` `/api/admin/overview`：档案总数/上架/下架/分类数/浏览量合计/
+    近30天检索次数+热词。
+  - `CategoryService` 新增 `treeAll()`（含停用分类），`CategoryNode` 新增 `status` 字段；
+    前台 `tree()` 行为不变。
+- 已验证（curl 全链路）：登录/非 admin 拒绝/无 token 401/概览/列表/新增/同名校验/编辑/下架
+  （下架后前台 `/api/entries` 检索 total=0）/删除/分类建删。前端 `npm run build`、`npm run lint` 通过。
+- 注意：后台与前台共用 TokenStore（内存实现），后端重启后管理员也需重新登录。
+

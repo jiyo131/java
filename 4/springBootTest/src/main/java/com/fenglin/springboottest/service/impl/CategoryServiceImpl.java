@@ -32,8 +32,20 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
 
     @Override
     public List<CategoryNode> tree() {
+        return buildTree(true);
+    }
+
+    @Override
+    public List<CategoryNode> treeAll() {
+        return buildTree(false);
+    }
+
+    /**
+     * @param onlyEnabled true 只含启用分类（前台）；false 含停用分类（管理端）
+     */
+    private List<CategoryNode> buildTree(boolean onlyEnabled) {
         List<Category> all = lambdaQuery()
-                .eq(Category::getStatus, 1)
+                .eq(onlyEnabled, Category::getStatus, 1)
                 .orderByAsc(Category::getLevel)
                 .orderByAsc(Category::getSortNo)
                 .orderByAsc(Category::getId)
@@ -153,6 +165,7 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
         node.setColor(c.getColor());
         node.setDescription(c.getDescription());
         node.setSortNo(c.getSortNo());
+        node.setStatus(c.getStatus());
         node.setCount(count);
         return node;
     }

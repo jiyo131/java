@@ -29,6 +29,9 @@ public class CategoryNode {
 
     private Integer sortNo;
 
+    /** 状态：1 启用 / 0 停用（管理端树使用） */
+    private Integer status;
+
     /** 本分类 + 所有子分类的档案数 */
     private Long count;
 

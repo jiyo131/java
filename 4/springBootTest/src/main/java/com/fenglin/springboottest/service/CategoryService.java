@@ -16,6 +16,11 @@ public interface CategoryService extends IService<Category> {
     List<CategoryNode> tree();
 
     /**
+     * 管理端分类树：包含停用分类（否则停用的分类在后台无法重新启用）。
+     */
+    List<CategoryNode> treeAll();
+
+    /**
      * 当前分类及其全部子孙分类的 id 集合；用于「点一级分类也能带出二级分类内容」。
      */
     Set<Long> selfAndDescendants(Long categoryId);
