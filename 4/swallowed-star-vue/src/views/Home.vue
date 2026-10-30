@@ -90,6 +90,9 @@
       </div>
     </section>
 
+    <!-- ===== 红线仙任务：苦情树下的委托告示板（可接取 / 取消 / 完成得情绪值） ===== -->
+    <RedLineTasks />
+
     <!-- 档案结果区 -->
     <section class="result-zone">
       <div class="result-head">
@@ -309,6 +312,7 @@ import { useRouter } from 'vue-router'
 import { getSession, fetchMe, logout } from '../composables/useAuth.js'
 import { useToast } from '../composables/useToast.js'
 import { fetchOverview, fetchEntries, fetchEntryDetail } from '../api/home.js'
+import RedLineTasks from '../components/RedLineTasks.vue'
 
 const router = useRouter()
 const { show } = useToast()
