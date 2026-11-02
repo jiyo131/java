@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import Login from '../views/Login.vue'
 import Register from '../views/Register.vue'
 import Home from '../views/Home.vue'
+import RedLineTaskPage from '../views/RedLineTaskPage.vue'
 import AdminLogin from '../views/AdminLogin.vue'
 import AdminLayout from '../views/admin/AdminLayout.vue'
 import AdminEntries from '../views/admin/AdminEntries.vue'
@@ -16,6 +17,8 @@ const routes = [
   { path: '/login', name: 'login', component: Login, meta: { title: '狐妖小红娘 · 涂山红线登录' } },
   { path: '/register', name: 'register', component: Register, meta: { title: '狐妖小红娘 · 初入涂山' } },
   { path: '/home', name: 'home', component: Home, meta: { title: '涂山人物志 · 狐妖小红娘' } },
+  // 红线仙任务独立页面：导航入口排在首个一级分类「人物档案」之后
+  { path: '/tasks', name: 'tasks', component: RedLineTaskPage, meta: { title: '红线仙任务 · 涂山委托告示板' } },
   // ===== 后台管理（独立登录态，仅登录、无注册） =====
   { path: '/admin/login', name: 'admin-login', component: AdminLogin, meta: { title: '后台管理系统 · 登录' } },
   {
@@ -51,7 +54,7 @@ router.beforeEach((to) => {
     return adminLogged ? undefined : '/admin/login'
   }
 
-  if (to.path === '/home' && !logged) {
+  if ((to.path === '/home' || to.path === '/tasks') && !logged) {
     return '/login'
   }
   if ((to.path === '/login' || to.path === '/') && logged) {

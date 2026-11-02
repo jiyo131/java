@@ -135,3 +135,31 @@
   （下架后前台 `/api/entries` 检索 total=0）/删除/分类建删。前端 `npm run build`、`npm run lint` 通过。
 - 注意：后台与前台共用 TokenStore（内存实现），后端重启后管理员也需重新登录。
 
+
+## 11. 删除「圣地秘境 / 法宝器物 / 两界组织」（2026-11-02）
+经用户确认连数据一起删除：DB 中移除 3 个一级分类 + 6 个二级分类（涂山圣地/傲来秘境/红娘法器/神兵符箓/涂山势力/道盟势力）
++ 12 位档案（id 10,11,12,13,14,21,22,26,27,28,29,30），无外键约束直接删；剩余 4 分类（人物档案+涂山一脉/道门修士/妖族众生）、18 档案、10 桩委托。
+关键点：dev 配置 `spring.sql.init.mode=always`，data.sql 每次启动都会 INSERT IGNORE 回填，因此**同步删除了 data.sql 中对应行**
+（一级 5/8/11、二级 6/7/9/10/12/13 及 12 个档案块），并重新打包重启后端验证数据不会复活。
+导航现为：全体档案 18 · 人物档案 18 · 🧵 红线仙任务；首页统计 18 卷档案 / 4 类分档。
+回滚：`backup/swallowed_star_before_delete_20261102.sql`（全库 dump，恢复执行即可）+ `backup/data.sql.bak_20261102`（旧种子文件）。
+
+## 10. 首页「红线仙任务」（2026-11-02 开发并全链路验证）
+独立页面 `src/views/RedLineTaskPage.vue`，路由 `/tasks`（登录守卫内，标题「红线仙任务 · 涂山委托告示板」）。顶部导航抽出为共用组件 `src/components/TopNav.vue`（时钟/用户区/导航项事件上抛），「🧵 红线仙任务」入口固定插在首个分类「人物档案」之后（分类未返回时也保留入口）；首页不再内嵌任务区。任务页含面包屑（涂山人物志 › 红线仙任务 + 返回档案库按钮），任务页点分类导航跳 `/home?cat=<id>`，Home 挂载时按 query 落到对应分类。告示板本体仍是 `src/components/RedLineTasks.vue`，可**接取 / 取消（二次确认）/ 完成得情绪值**，样式沿用登录页设计令牌。任务页左上角文字已主题化：面包屑当前项为粉金渐变+红线小图标（.crumb-now/.crumb-thread），标题为白→粉→金三段渐变+柔光（.rl-intro-text h3），上方金色英文眉线 TUSHAN · RED LINE COMMISSION（.rl-en），副标题分隔点改金色（.rl-intro-text .dot）。
+
+- 数据库（schema.sql §5-7，data.sql 已种 10 桩委托）：
+  `star_redline_task`（告示板）、`star_task_record`（唯一键 user_id+task_id，1 进行中 / 2 已圆满，
+  **取消 = 删除记录**，故可反复接取直到完成；已完成不可取消/再接）、`star_user_emotion`（主键 user_id）。
+- 后端：`TaskController` `/api/tasks`（全部要登录态，401 由 TokenStore.resolveUserId 判定）：
+  GET 看板（任务卡 + 用户状态 + 情绪值/阶位/进度）、POST `/{id}/accept|cancel|complete`。
+  `TaskServiceImpl`：synchronized + 唯一键兜底防并发重复接取；complete 加事务并结算情绪值，
+  `TaskAction` 带 `gained / levelUp / levelTitle`（结算前后比阶位，前端据此播升阶动效）。
+  阶位阈值 0/60/180/360/600 ↔ 初见红线/心有灵犀/红线牵引/三世情缘/苦情之证（前后端文案一致）。
+- 前端：`src/api/tasks.js` 封装四个接口；RedLineTasks.vue 含情绪值面板（飘字 +N、升阶流光 .emo-card.levelup）、
+  四页签筛选（全部/待接取/我的委托/已圆满）、骨架屏/错误/空态；取消按钮先变「再想想/确认取消」（4s 自动收回），
+  接取后跳「我的委托」，完成后跳「已圆满」，取消后回「全部委托」。样式在 style.css `.rl-*`/`.emo-*`/`.task-*`/`.btn-task`。
+- 已验证（CDP 真实 Chrome 驱动 + curl）：登录→看板渲染→接取→取消确认→取消→再接→完成结算
+  （+50/+45/+30，跨 180 触发升阶 glow=True）→已圆满页签→退出；含 401/重复接取/重复完成/
+  取消已完成/不存在任务等异常分支；多用户状态隔离（新注册用户与 admin 互不影响）。
+  `npm run build`、`npm run lint` 通过；`mvn -DskipTests package` 通过（注意先停 8081 的 java 再构建）。
+- 演示数据已复位：admin 无接取记录、情绪值 0，10 桩委托全部待接取。

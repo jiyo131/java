@@ -151,6 +151,7 @@ public class TaskServiceImpl extends ServiceImpl<RedLineTaskMapper, RedLineTask>
 
         int reward = task.getReward() == null ? 0 : task.getReward();
         UserEmotion emotion = emotionMapper.selectById(userId);
+        int beforeLevel = levelIndexOf(emotion == null ? 0 : nvl(emotion.getEmotion()));
         if (emotion == null) {
             emotion = new UserEmotion();
             emotion.setUserId(userId);
@@ -167,8 +168,13 @@ public class TaskServiceImpl extends ServiceImpl<RedLineTaskMapper, RedLineTask>
             emotionMapper.updateById(emotion);
         }
 
-        return buildAction(userId, task, reward,
+        TaskAction action = buildAction(userId, task, reward,
                 "「" + task.getTitle() + "」已圆满，情绪值 +" + reward);
+        // 结算前后对比阶位，告诉前端是否需要播放「升阶」提示
+        int afterLevel = levelIndexOf(nvl(action.getOverview().getEmotion()));
+        action.setLevelUp(afterLevel > beforeLevel);
+        action.setLevelTitle(action.getOverview().getLevelTitle());
+        return action;
     }
 
     /* ================= 内部辅助 ================= */
@@ -252,12 +258,7 @@ public class TaskServiceImpl extends ServiceImpl<RedLineTaskMapper, RedLineTask>
     }
 
     private void applyLevel(TaskOverview vo, int emotion) {
-        int index = 0;
-        for (int i = 0; i < LEVEL_FLOORS.length; i++) {
-            if (emotion >= LEVEL_FLOORS[i]) {
-                index = i;
-            }
-        }
+        int index = levelIndexOf(emotion);
         int floor = LEVEL_FLOORS[index];
         Integer next = index + 1 < LEVEL_FLOORS.length ? LEVEL_FLOORS[index + 1] : null;
 
@@ -277,6 +278,17 @@ public class TaskServiceImpl extends ServiceImpl<RedLineTaskMapper, RedLineTask>
             int pct = span <= 0 ? 100 : (int) Math.round((emotion - floor) * 100.0 / span);
             vo.setProgress(Math.max(0, Math.min(100, pct)));
         }
+    }
+
+    /** 情绪值对应的阶位下标（0 起），阈值见 LEVEL_FLOORS */
+    private static int levelIndexOf(int emotion) {
+        int index = 0;
+        for (int i = 0; i < LEVEL_FLOORS.length; i++) {
+            if (emotion >= LEVEL_FLOORS[i]) {
+                index = i;
+            }
+        }
+        return index;
     }
 
     private static String difficultyText(int difficulty) {

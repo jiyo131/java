@@ -708,9 +708,41 @@ body.modal-locked .home-shell{overflow:hidden}
 }
 
 /* ===== 首页「红线仙任务」告示板 ===== */
+/* ===== 红线仙任务独立页面（/tasks，导航入口在「人物档案」之后） ===== */
+.tasks-shell{padding-top:92px}
+.tasks-page{position:relative;z-index:1;max-width:1080px;margin:0 auto}
+.tasks-crumb{
+  display:flex;align-items:center;gap:10px;margin-bottom:18px;
+  font-size:12px;letter-spacing:2px;color:var(--muted);
+  text-shadow:0 1px 8px rgba(20,4,12,.8);
+}
+.crumb-link{
+  padding:0;border:0;background:none;cursor:pointer;
+  font:inherit;letter-spacing:2px;color:var(--muted);transition:.2s;
+}
+.crumb-link:hover{color:var(--pink)}
+.crumb-sep{color:rgba(255,217,160,.55)}
+.crumb-now{
+  display:inline-flex;align-items:center;gap:7px;font-weight:600;
+  background:linear-gradient(92deg,#ffe3ea 0%,var(--pink) 55%,var(--gold) 110%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 0 10px rgba(255,92,122,.3));
+}
+.crumb-thread{color:var(--rose);filter:drop-shadow(0 0 6px rgba(255,92,122,.55))}
+.crumber{flex:1}
+.crumb-back{
+  display:inline-flex;align-items:center;gap:5px;height:28px;padding:0 12px;border-radius:999px;
+  cursor:pointer;font-size:11.5px;letter-spacing:1px;color:var(--muted);
+  background:rgba(46,16,30,.55);border:1px solid var(--panel-line);transition:.2s;
+}
+.crumb-back:hover{color:var(--pink);border-color:rgba(255,158,181,.45);background:rgba(255,158,181,.1)}
+
+/* 导航中的任务入口图标 */
+.nav-glyph{font-size:12px;line-height:1;filter:drop-shadow(0 0 6px rgba(255,92,122,.45))}
+
 .rl-zone{
   position:relative;z-index:1;
-  max-width:1080px;margin:0 auto 46px;
+  max-width:1080px;margin:0 auto;
   animation:rise .7s cubic-bezier(.2,.8,.2,1) both;
 }
 .rl-head{
@@ -729,16 +761,21 @@ body.modal-locked .home-shell{overflow:hidden}
   border:1px solid rgba(255,158,181,.55);
   box-shadow:0 0 22px rgba(255,92,122,.34), inset 0 0 14px rgba(255,217,160,.2);
 }
+.rl-en{
+  margin-bottom:5px;font-size:9px;letter-spacing:4px;color:var(--gold);
+  opacity:.72;text-shadow:0 1px 8px rgba(20,4,12,.85);
+}
 .rl-intro-text h3{
-  font-size:19px;letter-spacing:4px;font-weight:800;
-  background:linear-gradient(90deg,#fff,var(--pink));
+  font-size:21px;letter-spacing:5px;font-weight:800;
+  background:linear-gradient(92deg,#fff 0%,#ffd9e3 34%,var(--pink) 64%,var(--gold) 105%);
   -webkit-background-clip:text;background-clip:text;color:transparent;
-  text-shadow:0 0 18px rgba(255,158,181,.25);
+  filter:drop-shadow(0 0 14px rgba(255,92,122,.35));
 }
 .rl-intro-text p{
   margin-top:6px;font-size:11.5px;letter-spacing:1.2px;color:var(--muted);
   text-shadow:0 1px 8px rgba(20,4,12,.8);
 }
+.rl-intro-text .dot{font-style:normal;color:var(--gold);opacity:.8}
 
 /* 情绪值面板 */
 .emo-card{
@@ -797,6 +834,26 @@ body.modal-locked .home-shell{overflow:hidden}
 .emo-card.bump{animation:emoBump .9s ease}
 .emo-card.bump .emo-value b{text-shadow:0 0 26px rgba(255,217,160,.8)}
 @keyframes emoBump{0%,100%{transform:none}32%{transform:scale(1.028)}64%{transform:scale(.998)}}
+
+/* 升阶：面板金线流光 + 阶位徽章点亮 */
+.emo-card.levelup{
+  border-color:rgba(255,217,160,.75);
+  box-shadow:0 14px 34px rgba(20,4,12,.42), 0 0 30px rgba(255,217,160,.42);
+  animation:emoLevel 1s ease 2;
+}
+.emo-card.levelup .emo-level{
+  color:#451020;background:linear-gradient(135deg,var(--gold),var(--gold-2));
+  border-color:rgba(255,217,160,.9);
+  box-shadow:0 0 18px rgba(255,217,160,.55);
+}
+.emo-card.levelup::after{
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(115deg,transparent 32%,rgba(255,217,160,.26) 50%,transparent 68%);
+  transform:translateX(-120%);
+  animation:emoSheen 1.15s cubic-bezier(.3,.7,.3,1) both;
+}
+@keyframes emoLevel{0%,100%{transform:none}40%{transform:translateY(-2px) scale(1.012)}}
+@keyframes emoSheen{0%{transform:translateX(-120%)}100%{transform:translateX(120%)}}
 
 /* 筛选条 */
 .rl-tabs{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:16px 0 18px}
@@ -915,6 +972,16 @@ body.modal-locked .home-shell{overflow:hidden}
   background:transparent;border:1px solid var(--panel-line);color:var(--muted);
 }
 .btn-task.ghost:hover:not(:disabled){border-color:rgba(255,77,109,.55);color:var(--danger)}
+.btn-task.plain{
+  background:transparent;border:1px solid var(--panel-line);color:var(--pink);
+}
+.btn-task.plain:hover:not(:disabled){border-color:rgba(255,158,181,.5);color:var(--text)}
+.btn-task.danger{
+  border:0;color:#2b0710;font-weight:700;
+  background:linear-gradient(135deg,#ff7a8f,var(--danger));
+  box-shadow:0 8px 18px rgba(255,77,109,.32);
+}
+.btn-task.danger:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 10px 24px rgba(255,77,109,.45)}
 .btn-task:disabled{cursor:default;opacity:.62;box-shadow:none}
 .task-done{font-size:11.5px;letter-spacing:1px;color:var(--ok)}
 .task-stamp{
@@ -922,7 +989,9 @@ body.modal-locked .home-shell{overflow:hidden}
 }
 
 @media (max-width:760px){
-  .rl-zone{margin-bottom:34px}
+  .tasks-shell{padding-top:112px}
+  .tasks-crumb{margin-bottom:14px}
+  .rl-zone{margin:0 auto}
   .rl-head{flex-direction:column;align-items:stretch;gap:14px}
   .emo-card{flex:1 1 auto;width:100%}
   .rl-intro-text h3{font-size:17px;letter-spacing:3px}

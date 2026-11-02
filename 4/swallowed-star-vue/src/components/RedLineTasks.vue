@@ -5,12 +5,13 @@
       <div class="rl-intro">
         <span class="rl-sigil" aria-hidden="true">🧵</span>
         <div class="rl-intro-text">
+          <p class="rl-en" aria-hidden="true">TUSHAN <i class="dot">·</i> RED LINE COMMISSION</p>
           <h3 id="rl-title">红线仙任务</h3>
-          <p>苦情树下挂出的委托 · 可随时接取或取消，圆满即成情绪值</p>
+          <p>苦情树下挂出的委托 <i class="dot">·</i> 可随时接取或取消 <i class="dot">·</i> 圆满即成情绪值</p>
         </div>
       </div>
 
-      <div class="emo-card" :class="{ bump: bumping }">
+      <div class="emo-card" :class="{ bump: bumping, levelup: leveledUp }">
         <div class="emo-top">
           <span class="emo-label">情绪值</span>
           <span class="emo-level">{{ board.levelTitle }}</span>
@@ -88,7 +89,7 @@
           </div>
         </header>
 
-        <p class="task-desc">{{ t.description }}</p>
+        <p class="task-desc" :title="t.description">{{ t.description }}</p>
 
         <div class="task-meta">
           <span class="meta-item">
@@ -120,10 +121,18 @@
               </button>
             </template>
             <template v-else-if="t.state === 'accepted'">
-              <button class="btn-task ghost" :disabled="busyId === t.id" @click="act(t, 'cancel')">取消</button>
-              <button class="btn-task primary" :disabled="busyId === t.id" @click="act(t, 'complete')">
-                {{ busyId === t.id ? '结算中…' : '完成委托' }}
-              </button>
+              <template v-if="confirmId === t.id">
+                <button class="btn-task plain" :disabled="busyId === t.id" @click="confirmId = null">再想想</button>
+                <button class="btn-task danger" :disabled="busyId === t.id" @click="act(t, 'cancel')">
+                  {{ busyId === t.id ? '取消中…' : '确认取消' }}
+                </button>
+              </template>
+              <template v-else>
+                <button class="btn-task ghost" :disabled="busyId === t.id" @click="askCancel(t)">取消</button>
+                <button class="btn-task primary" :disabled="busyId === t.id" @click="act(t, 'complete')">
+                  {{ busyId === t.id ? '结算中…' : '完成委托' }}
+                </button>
+              </template>
             </template>
             <template v-else>
               <span class="task-done">✓ 已记为前缘</span>
@@ -148,7 +157,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import { useToast } from '../composables/useToast.js'
 import { fetchTaskBoard, acceptTask, cancelTask, completeTask } from '../api/tasks.js'
 
@@ -176,9 +185,13 @@ const error = ref('')
 const tab = ref('all')
 const busyId = ref(null)
 const bumping = ref(false)
+const leveledUp = ref(false)
+const confirmId = ref(null)
 const floats = ref([])
 
 let floatSeed = 0
+let confirmTimer = null
+let levelTimer = null
 
 const visibleTasks = computed(() => {
   const list = board.tasks || []
@@ -202,14 +215,27 @@ async function load() {
     const data = await fetchTaskBoard()
     if (data) Object.assign(board, data, { tasks: data.tasks || [] })
   } catch (e) {
-    error.value = e.message || '任务告示板加载失败，请确认后端服务已启动'
+    error.value = /fetch|network/i.test(e.message || '')
+      ? '苦情树的线暂时断了（网络异常），请确认后端服务已启动'
+      : (e.message || '任务告示板加载失败，请确认后端服务已启动')
   } finally {
     loading.value = false
   }
 }
 
+// 取消是破坏性操作，先在本卡片内二次确认（4 秒无操作自动收回）
+function askCancel(task) {
+  confirmId.value = task.id
+  clearTimeout(confirmTimer)
+  confirmTimer = setTimeout(() => {
+    if (confirmId.value === task.id) confirmId.value = null
+  }, 4000)
+}
+
 async function act(task, type) {
   if (busyId.value) return
+  clearTimeout(confirmTimer)
+  confirmId.value = null
   busyId.value = task.id
   try {
     const handler = type === 'accept' ? acceptTask : type === 'cancel' ? cancelTask : completeTask
@@ -218,12 +244,19 @@ async function act(task, type) {
       Object.assign(board, data.overview, { tasks: data.overview.tasks || [] })
     }
     if (type === 'complete' && data && data.gained > 0) {
-      celebrate(data.gained)
-      show(data.message || `委托圆满，情绪值 +${data.gained}`, 'ok')
+      celebrate(data.gained, !!data.levelUp)
+      show(
+        data.levelUp
+          ? `委托圆满，情绪值 +${data.gained} · 阶位升至「${data.levelTitle || board.levelTitle}」`
+          : data.message || `委托圆满，情绪值 +${data.gained}`,
+        'ok'
+      )
       tab.value = 'completed'
     } else {
       show((data && data.message) || '已更新委托状态', 'ok')
       if (type === 'accept') tab.value = 'accepted'
+      // 取消后「我的委托」已为空，回到全部委托避免显得像出了错
+      if (type === 'cancel') tab.value = 'all'
     }
   } catch (e) {
     show(e.message || '操作失败，请稍后再试', 'err')
@@ -232,14 +265,25 @@ async function act(task, type) {
   }
 }
 
-// 完成委托时的情绪值飘字 + 卡片轻微脉动
-function celebrate(gained) {
+// 完成委托时的情绪值飘字 + 卡片轻微脉动；升阶时额外点亮面板
+function celebrate(gained, levelUp) {
   const id = ++floatSeed
   floats.value = [{ id, n: gained }]
   bumping.value = true
+  clearTimeout(levelTimer)
+  if (levelUp) leveledUp.value = true
+
   setTimeout(() => { bumping.value = false }, 900)
   setTimeout(() => { floats.value = floats.value.filter((f) => f.id !== id) }, 1400)
+  if (levelUp) {
+    levelTimer = setTimeout(() => { leveledUp.value = false }, 3200)
+  }
 }
+
+onBeforeUnmount(() => {
+  clearTimeout(confirmTimer)
+  clearTimeout(levelTimer)
+})
 
 onMounted(load)
 </script>

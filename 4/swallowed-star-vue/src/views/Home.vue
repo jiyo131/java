@@ -1,48 +1,14 @@
 <template>
-  <!-- ===== 顶部导航栏（一级分类，数据来自后端分类树） ===== -->
-  <nav class="topnav">
-    <a class="logo" href="#" @click.prevent="scrollTop">
-      <span class="mark">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ff9eb5" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M12 21s-7-4.5-9.5-9C.5 8 3 4.5 6.5 4.5c2 0 3.5 1 5.5 3 2-2 3.5-3 5.5-3C21 4.5 23.5 8 21.5 12 19 16.5 12 21 12 21z"/>
-        </svg>
-      </span>
-      <b>狐妖小红娘</b>
-    </a>
-
-    <div class="nav-menu">
-      <button
-        v-for="n in navs"
-        :key="n.key"
-        class="nav-item"
-        :class="{ active: activeNav === n.key }"
-        @click="onNav(n)"
-      >
-        {{ n.label }}
-        <em class="nav-count">{{ n.count }}</em>
-      </button>
-    </div>
-
-    <span class="spacer"></span>
-    <span class="clock">{{ clock }}</span>
-
-    <div class="nav-user">
-      <span class="avatar">{{ avatarChar }}</span>
-      <span class="name">{{ nickname }}</span>
-      <button class="btn-admin" @click="goAdmin">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/><circle cx="12" cy="15" r="1.4"/>
-        </svg>
-        后台管理
-      </button>
-      <button class="btn-exit" @click="goLogout">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/>
-        </svg>
-        退出
-      </button>
-    </div>
-  </nav>
+  <!-- ===== 顶部导航栏（一级分类，数据来自后端分类树；红线仙任务为独立页面入口） ===== -->
+  <TopNav
+    :navs="navs"
+    :active-key="activeNav"
+    :nickname="nickname"
+    @select="onNav"
+    @home="scrollTop"
+    @admin="goAdmin"
+    @logout="goLogout"
+  />
 
   <!-- ===== 首页主体（可滚动） ===== -->
   <main class="home-shell">
@@ -89,9 +55,6 @@
         </button>
       </div>
     </section>
-
-    <!-- ===== 红线仙任务：苦情树下的委托告示板（可接取 / 取消 / 完成得情绪值） ===== -->
-    <RedLineTasks />
 
     <!-- 档案结果区 -->
     <section class="result-zone">
@@ -308,13 +271,14 @@
 
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { getSession, fetchMe, logout } from '../composables/useAuth.js'
 import { useToast } from '../composables/useToast.js'
 import { fetchOverview, fetchEntries, fetchEntryDetail } from '../api/home.js'
-import RedLineTasks from '../components/RedLineTasks.vue'
+import TopNav from '../components/TopNav.vue'
 
 const router = useRouter()
+const route = useRoute()
 const { show } = useToast()
 
 const PAGE_SIZE = 12
@@ -323,9 +287,6 @@ const FALLBACK_COLOR = '#ff9eb5'
 /* ===== 用户会话（token 失效自动退回登录页） ===== */
 const session = getSession()
 const nickname = ref((session && (session.nickname || session.username)) || '红线仙缘')
-const avatarChar = computed(() => (nickname.value || '狐')[0])
-const clock = ref('')
-let timer = null
 
 /* ===== 首页聚合数据 ===== */
 const categories = ref([])
@@ -333,13 +294,19 @@ const stats = ref({ entryCount: 0, categoryCount: 0, viewCount: 0 })
 const hotWords = ref([])
 const featured = ref([])
 
-/* ===== 分类导航（一级来自后端分类树） ===== */
+/* ===== 分类导航（一级来自后端分类树；红线仙任务为独立页面，排在「人物档案」之后） ===== */
 const activeNav = ref('all')
 const activeSub = ref(null)
 
 const navs = computed(() => {
   const list = [{ key: 'all', label: '全体档案', count: stats.value.entryCount }]
-  categories.value.forEach((c) => list.push({ key: String(c.id), label: c.name, count: c.count }))
+  const taskNav = { key: 'tasks', label: '红线仙任务' }
+  categories.value.forEach((c, i) => {
+    list.push({ key: String(c.id), label: c.name, count: c.count })
+    if (i === 0) list.push(taskNav)
+  })
+  // 分类尚未返回时也保留任务入口，避免导航闪烁丢项
+  if (!categories.value.length) list.push(taskNav)
   return list
 })
 
@@ -437,6 +404,11 @@ async function loadEntries({ reset = true, record = true } = {}) {
 
 /* ===== 交互 ===== */
 function onNav(n) {
+  // 红线仙任务已是独立页面，点击导航直接跳转
+  if (n.key === 'tasks') {
+    router.push('/tasks')
+    return
+  }
   if (activeNav.value === n.key && !activeSub.value) return
   activeNav.value = n.key
   activeSub.value = null
@@ -574,16 +546,8 @@ function avatarStyle(item) {
   return { color: c, background: `${c}18`, border: `1px solid ${c}33`, boxShadow: `0 0 22px ${c}33` }
 }
 
-/* ===== 时钟 + 登录态校验 ===== */
-function tick() {
-  const d = new Date()
-  const p = (n) => String(n).padStart(2, '0')
-  clock.value = `${d.getFullYear()}.${p(d.getMonth() + 1)}.${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`
-}
-
+/* ===== 登录态校验 + 首屏数据（支持从任务页导航带 ?cat= 跳回指定分类） ===== */
 onMounted(async () => {
-  tick()
-  timer = setInterval(tick, 1000)
   window.addEventListener('keydown', onKeydown)
 
   const me = await fetchMe()
@@ -594,11 +558,17 @@ onMounted(async () => {
   }
   nickname.value = me.nickname || me.username || nickname.value
 
-  await Promise.all([loadOverview(), loadEntries({ reset: true, record: false })])
+  await loadOverview()
+
+  const cat = route.query.cat
+  if (cat && (cat === 'all' || categories.value.some((c) => String(c.id) === String(cat)))) {
+    activeNav.value = String(cat)
+  }
+
+  await loadEntries({ reset: true, record: false })
 })
 
 onBeforeUnmount(() => {
-  clearInterval(timer)
   clearTimeout(searchTimer)
   window.removeEventListener('keydown', onKeydown)
   document.body.classList.remove('modal-locked')
