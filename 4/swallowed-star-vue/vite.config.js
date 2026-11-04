@@ -8,9 +8,9 @@ export default defineConfig({
     port: 5173,
     open: true,
     proxy: {
-      // 开发环境把 /api 请求转发到 Spring Boot 后端（默认 8081）
+      // 开发环境把 /api 请求转发到 Spring Boot 后端（本机以太网 IPv4:8081）
       '/api': {
-        target: 'http://localhost:8081',
+        target: 'http://192.168.68.72:8081',
         changeOrigin: true
       }
     }

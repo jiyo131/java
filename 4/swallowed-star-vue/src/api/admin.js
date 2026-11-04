@@ -153,3 +153,44 @@ export async function adminDeleteCategory(id) {
   const res = await request('DELETE', `/admin/categories/${id}`)
   return res.data
 }
+
+/* ===== 账号管理（star_user 增删改查） ===== */
+
+/**
+ * 账号列表（不含密码）
+ * @param {object} p { keyword, status(-1 全部/1 正常/0 停用), page, size }
+ */
+export async function adminUsers(p = {}) {
+  const res = await request('GET', '/admin/users', { params: p })
+  return res.data
+}
+
+/** 新增账号（密码 BCrypt 加密入库） */
+export async function adminCreateUser(user) {
+  const res = await request('POST', '/admin/users', { body: user })
+  return res.data
+}
+
+/** 修改昵称（账号名不可改） */
+export async function adminUpdateUser(id, user) {
+  const res = await request('PUT', `/admin/users/${id}`, { body: user })
+  return res.data
+}
+
+/** 停用 / 启用（内置 admin 不允许停用） */
+export async function adminUserStatus(id, status) {
+  const res = await request('PUT', `/admin/users/${id}/status`, { body: { status } })
+  return res.data
+}
+
+/** 重置密码 */
+export async function adminUserPassword(id, password) {
+  const res = await request('PUT', `/admin/users/${id}/password`, { body: { password } })
+  return res.data
+}
+
+/** 删除账号（内置 admin 不允许删除；后端同时清理任务记录与情绪值） */
+export async function adminDeleteUser(id) {
+  const res = await request('DELETE', `/admin/users/${id}`)
+  return res.data
+}

@@ -48,6 +48,9 @@ public class AdminAuthController {
         if (user == null) {
             return Result.fail("管理员账号或密码不正确");
         }
+        if (user.getStatus() != null && user.getStatus() == 0) {
+            return Result.fail("该账号已被停用，请联系管理员");
+        }
         String token = tokenStore.createToken(user.getId());
         return Result.ok(new LoginResponse(token, user.getUsername(), user.getNickname()));
     }

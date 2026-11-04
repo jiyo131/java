@@ -75,6 +75,7 @@ CREATE TABLE IF NOT EXISTS star_user (
   username    VARCHAR(32)  NOT NULL                COMMENT '账号',
   password    VARCHAR(128) NOT NULL                COMMENT '密码（BCrypt 加密存储）',
   nickname    VARCHAR(64)  DEFAULT NULL            COMMENT '昵称',
+  status      TINYINT      NOT NULL DEFAULT 1      COMMENT '状态：1 正常 / 0 停用（停用后无法登录）',
   created_at  DATETIME     DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   PRIMARY KEY (id),
   UNIQUE KEY uk_username (username)

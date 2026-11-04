@@ -36,6 +36,10 @@ public class AdminGuard {
         if (user == null || !ADMIN_USERNAME.equals(user.getUsername())) {
             return null;
         }
+        // 账号被停用后，已签发的 token 立即失效
+        if (user.getStatus() != null && user.getStatus() == 0) {
+            return null;
+        }
         return user;
     }
 

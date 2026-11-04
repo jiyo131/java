@@ -1,5 +1,5 @@
 // 与后端（Spring Boot + MyBatis-Plus）通信的认证接口层
-// 开发环境通过 Vite 代理把 /api 转发到 http://localhost:8081
+// 开发环境通过 Vite 代理把 /api 转发到 http://192.168.68.72:8081
 // 请求 / token / 错误解包逻辑统一收敛在 http.js
 import { request } from './http.js'
 

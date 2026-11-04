@@ -95,13 +95,13 @@ IF NOT EXIST "%BACKEND%\target\springBootTest-0.0.1-SNAPSHOT.jar" (
   goto :eof
 )
 
-echo [4/5] 启动后端  http://127.0.0.1:8081 ...
+echo [4/5] 启动后端  http://192.168.68.72:8081 ...
 start "swallowed-star-backend" cmd /k "cd /d "%BACKEND%" && java -jar target\springBootTest-0.0.1-SNAPSHOT.jar --server.port=8081 --spring.profiles.active=dev"
 
 echo        等待后端启动 10 秒 ...
 timeout /t 10 /nobreak >nul
 
-echo [5/5] 安装前端依赖并启动  http://localhost:5173 ...
+echo [5/5] 安装前端依赖并启动  http://192.168.68.72:5173 ...
 cd /d "%FRONTEND%"
 REM 关键修复: 用 node_modules\vite\package.json 判断依赖是否真的装好了
 IF NOT EXIST "node_modules\vite\package.json" (
@@ -128,8 +128,8 @@ start "swallowed-star-frontend" cmd /k "cd /d "%FRONTEND%" && npm run dev"
 echo.
 echo ===================================================
 echo  启动完成!
-echo  前端: http://localhost:5173  (/api 自动代理到 8081)
-echo  后端: http://127.0.0.1:8081/api
+echo  前端: http://192.168.68.72:5173  (/api 自动代理到 8081)
+echo  后端: http://192.168.68.72:8081/api
 echo  演示账号: admin / 123456  (首次启动自动创建)
 echo  停止项目请运行 pause.bat
 echo ===================================================

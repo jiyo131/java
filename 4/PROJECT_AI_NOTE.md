@@ -163,3 +163,69 @@
   取消已完成/不存在任务等异常分支；多用户状态隔离（新注册用户与 admin 互不影响）。
   `npm run build`、`npm run lint` 通过；`mvn -DskipTests package` 通过（注意先停 8081 的 java 再构建）。
 - 演示数据已复位：admin 无接取记录、情绪值 0，10 桩委托全部待接取。
+
+## 12. 修复 data.sql 悬空逗号导致种子数据全灭（2026-11-04）
+现象：机器重置后启动，`/api/home/overview` 返回 entryCount=0 / categoryCount=0，首页空白。
+根因：2026-11-02 删除「圣地秘境/法宝器物/两界组织」时，`data.sql` 里三条语句的结尾行
+（一级分类 id=1、二级分类 id=4、档案 id=25）都留下了**悬空逗号 `,` 后直接跟下一条 INSERT**
+（没有分号终止），整个脚本在第一条语句处即语法错误；而 dev 配置
+`spring.sql.init.continue-on-error=true` 把错误静默吞掉，后端照常启动，库里却一条种子都没有。
+同次编辑还**误删了第 10 桩委托 RL-010「写给前世的一封信」**（已从 backup/data.sql.bak_20261102 找回）。
+修复：三处 `,` 改 `;`，补回 RL-010；`mysql < data.sql` 手动灌库验证（18 档案 / 4 分类 / 10 委托）；
+停 8081 → `mvn package` 重建 → 重启后端，`/api/home/overview` 恢复 18/4/热词。
+教训：**改完 data.sql 必须用 mysql 客户端实际执行一遍验证语法**，不能只看启动日志
+（continue-on-error 会吞错）；INSERT IGNORE 幂等，重复执行安全。
+验证要点：`curl http://127.0.0.1:8081/api/home/overview` 应返回 entryCount=18、categoryCount=4；
+`/api/entries?size=50` total=18；登录 admin/123456 后 `/api/tasks` 返回 10 桩。
+
+## 13. 独立建表脚本 star_page_init.sql（2026-11-04 新增）
+应需求生成的**独立交付版**建表脚本，位于项目根目录：`star_page_init.sql`（UTF-8，323 行）。
+- 内容：CREATE DATABASE swallowed_star + schema.sql 全部 7 张表 DDL + data.sql 全部种子
+  （4 分类 / 18 档案 / 10 委托）+ 演示账号 admin（BCrypt，口令 123456）。
+- 用法：`mysql -uroot -p123456 --default-character-set=utf8mb4 < star_page_init.sql`
+- 全幂等（CREATE TABLE IF NOT EXISTS + INSERT IGNORE），已在临时库完整跑通并在真实库重复执行验证不产生重复。
+- 与 start.bat 的 star_user.sql 区别：star_user.sql 只建表无种子；本脚本自带页面数据，
+  单独执行即可让首页有人物介绍（无需依赖后端 sql.init），适合交付/演示/换机重建。
+- **注意**：后端 schema.sql / data.sql 若再修改，需重新拼接同步本脚本（拼装方式见 git 或本节）。
+
+## 14. 前后端 IP 统一为本机以太网 IPv4（2026-11-04）
+应需求把前后端服务的 IP 从 127.0.0.1/localhost 换成本机局域网 IP（ipconfig 以太网适配器）：
+当前为 **192.168.68.72**（DHCP 分配，**换网络后会变**，需同步改下面几处）。
+- `swallowed-star-vue/vite.config.js`：`/api` 代理 target → `http://192.168.68.72:8081`
+  （`server.host: true` 原本就有，5173 绑定 0.0.0.0，局域网可直接访问前端）。
+- 后端 `static/index.html` 欢迎页 spa-link、`templates/user/main.html` 两处入口 → `http://192.168.68.72:5173`。
+- `start.bat` / `start.bat.bak` 提示文字（GBK 文件，仅用 sed 替换 ASCII URL，中文不受影响）。
+- 注释同步：`src/api/http.js`、`src/api/auth.js`。
+- **未改动**：`application-dev.properties` 的 MySQL 连接仍为 127.0.0.1（root 只授权了本地，
+  且数据库不属于"前后端服务"）；后端 Tomcat 本身绑定 0.0.0.0，天然可通过本机 IP 访问；CORS 为 `**` 通配。
+- 已重新打包重启后端、重启 vite（vite.config.js 修改必须重启才生效）。
+- 验证：`http://192.168.68.72:8081/api/home/overview` 200；`http://192.168.68.72:5173/` 200；
+  经 5173 代理的 overview / 登录接口均正常；欢迎页链接已指向新 IP。
+- 局域网其它设备访问不通常查 Windows 防火墙入站规则（放行 8081/5173）。
+  **已放行**：新增两条入站规则 `Tushan-Backend-8081` / `Tushan-Frontend-5173`（TCP，域/专用/公用全配置文件启用）。
+- 前后端 README 已同步新 IP（swallowed-star-vue/README.md、springBootTest/README.md），并注明 DHCP 换网络后需改的位置。
+
+## 15. 后台「账号管理」（2026-11-04 开发并全链路验证）
+后台新增第三个页签 `/admin/users`（账号管理），对 star_user 做增删改查。
+
+- 数据库：`star_user` 新增 `status TINYINT NOT NULL DEFAULT 1`（1 正常 / 0 停用）。
+  **老库迁移**：`CREATE TABLE IF NOT EXISTS` 不会给已存在的表加列，故在 `DataInitializer`
+  里用 JdbcTemplate `ALTER TABLE ... ADD COLUMN` + try/catch 幂等补列（Duplicate column 忽略）；
+  schema.sql 的 CREATE TABLE 已同步加列（新库直接建出来）。star_page_init.sql 已重新拼接同步。
+- 后端：`AdminUserController /api/admin/users`（全部先过 AdminGuard）：
+  GET 列表（keyword 匹配账号/昵称、status 筛选、分页、**永不返回密码字段**，行带 admin 标记）；
+  POST 新增（用户名 3-16 位中文/字母/数字/下划线、唯一；密码 6-20 位 BCrypt 入库；昵称默认同账号）；
+  PUT /{id} 改昵称（账号名不可改）；PUT /{id}/status 停用/启用；PUT /{id}/password 重置密码；
+  DELETE /{id} 删除（物理删，同时清理 star_task_record / star_user_emotion；检索日志保留）。
+  **保护规则**：内置 admin 不可停用、不可删除、不可改账号名。
+- 登录链路：`AuthController.login`、`AdminAuthController.login`、`AuthController.me` 对
+  status=0 返回"该账号已被停用"；`AdminGuard.adminOf` 对停用管理员返回 null（token 立即失效）。
+  `UserServiceImpl.register` 显式写 status=1。
+- 前端：`views/admin/AdminUsers.vue`（工具栏：关键词/状态筛选/新增；表格：头像字/账号+管理员徽标/
+  昵称/状态/创建时间/操作；一个弹窗三用：新增/改昵称/重置密码；admin 行的停用删除按钮禁用）；
+  `admin.js` 加 6 个接口封装；`router` 加 admin-users 路由；`AdminLayout` 加页签 + 
+  「👥 账号数 / 🧑 正常账号」两张统计卡（overview 接口新增 userTotal / userOnline）。
+- 已验证（curl 14 项）：列表/新增/重名拒绝/参数校验/改昵称/停用→前台登录被拒/启用→可登录/
+  重置密码→旧密失败新密成功/admin 停用删除均拒绝/删除（含关联清理）/未登录 401/概览账号数。
+  `npm run lint` 0 error、`npm run build` 通过；vite 热更新后 /admin/users 路由 200。
+- 注意：curl 测试脚本里不要用 `UID` 当变量名（bash 只读变量），取 id 用别的名字。

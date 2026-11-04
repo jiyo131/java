@@ -18,6 +18,9 @@
         <RouterLink class="ad-tab" :class="{ active: $route.name === 'admin-categories' }" to="/admin/categories">
           分类管理
         </RouterLink>
+        <RouterLink class="ad-tab" :class="{ active: $route.name === 'admin-users' }" to="/admin/users">
+          账号管理
+        </RouterLink>
       </nav>
 
       <span class="ad-spacer"></span>
@@ -61,7 +64,8 @@ const avatarChar = computed(() => (nickname.value || '管')[0])
 
 const stats = ref({
   entryTotal: 0, entryOnline: 0, entryOffline: 0,
-  categoryTotal: 0, viewTotal: 0, searchCount30d: 0
+  categoryTotal: 0, viewTotal: 0, searchCount30d: 0,
+  userTotal: 0, userOnline: 0
 })
 
 const statCards = computed(() => [
@@ -69,6 +73,8 @@ const statCards = computed(() => [
   { key: 'online', icon: '✅', label: '上架中', value: stats.value.entryOnline },
   { key: 'offline', icon: '🗂️', label: '已下架', value: stats.value.entryOffline },
   { key: 'category', icon: '🏷️', label: '分类数', value: stats.value.categoryTotal },
+  { key: 'user', icon: '👥', label: '账号数', value: stats.value.userTotal },
+  { key: 'userOnline', icon: '🧑', label: '正常账号', value: stats.value.userOnline },
   { key: 'view', icon: '👁️', label: '累计浏览量', value: stats.value.viewTotal },
   { key: 'search', icon: '🔍', label: '近30天检索', value: stats.value.searchCount30d }
 ])

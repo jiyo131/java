@@ -51,6 +51,9 @@ public class AuthController {
         if (user == null) {
             return Result.fail("账号或姻缘密钥不正确");
         }
+        if (user.getStatus() != null && user.getStatus() == 0) {
+            return Result.fail("该账号已被停用，请联系管理员");
+        }
         String token = tokenStore.createToken(user.getId());
         return Result.ok(new LoginResponse(token, user.getUsername(), user.getNickname()));
     }
@@ -69,6 +72,9 @@ public class AuthController {
         User user = userService.getById(uid);
         if (user == null) {
             return Result.fail(401, "用户不存在");
+        }
+        if (user.getStatus() != null && user.getStatus() == 0) {
+            return Result.fail(401, "该账号已被停用");
         }
         return Result.ok(new LoginResponse(token, user.getUsername(), user.getNickname()));
     }

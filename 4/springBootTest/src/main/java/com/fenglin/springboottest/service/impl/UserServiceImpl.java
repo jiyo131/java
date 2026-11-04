@@ -24,6 +24,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         user.setUsername(username);
         user.setPassword(encoder.encode(password));
         user.setNickname(username);
+        user.setStatus(1);
         user.setCreatedAt(LocalDateTime.now());
         save(user);
         return 0;
