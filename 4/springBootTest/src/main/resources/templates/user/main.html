@@ -93,13 +93,22 @@
     </p>
     <p class="tip">
         已通过后台表单登录进入首页。<br>
-        前台 Vue 版入口：<span>http://192.168.68.72:5173</span>
+        前台 Vue 版入口：<span id="spa-url">正在探测…</span>
     </p>
 
     <div class="actions">
-        <a class="btn primary" href="http://192.168.68.72:5173/">进入涂山首页</a>
+        <a id="spa-link" class="btn primary" href="#">进入涂山首页</a>
         <a class="btn" th:href="@{/user/to_login}">退出登录</a>
     </div>
 </main>
+<script>
+    // 前端与后端在同一台机器, 按"当前访问后端用的地址"推导前端入口,
+    // 本机 IP 变化(DHCP)时链接自动跟随, 不再硬编码
+    (function () {
+        var u = location.protocol + '//' + (location.hostname || 'localhost') + ':5173/';
+        document.getElementById('spa-link').href = u;
+        document.getElementById('spa-url').textContent = u;
+    })();
+</script>
 </body>
 </html>

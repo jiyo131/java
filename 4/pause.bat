@@ -1,11 +1,14 @@
 @echo off
 REM ============================================================
-REM 吞噬星空 项目停止脚本 (GBK 编码)
+REM 狐妖小红娘 项目停止脚本 (GBK 编码)
 REM 停止前端(5173)与后端(8081); MySQL 服务默认保留
 REM 用法: 双击本文件
+REM 2026-11-06 修正: 项目名「吞噬星空」误写 -> 狐妖小红娘; 补充 chcp 936
 REM ============================================================
 
-echo 正在停止 吞噬星空 项目 ...
+chcp 936 >nul 2>&1
+
+echo 正在停止 狐妖小红娘 项目 ...
 
 REM 停止后端 (端口 8081)
 for /f "tokens=5" %%a in ('netstat -ano ^| findstr ":8081" ^| findstr "LISTENING"') do (
@@ -23,3 +26,4 @@ taskkill /FI "WINDOWTITLE eq swallowed-star-frontend" /F >nul 2>&1
 
 echo 前后端已停止。
 echo (MySQL 服务未停止; 如需停止请手动执行: net stop MySQL80)
+pause

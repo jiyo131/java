@@ -13,10 +13,10 @@
 
 ```bash
 npm install
-npm run dev      # http://192.168.68.72:5173（本机以太网 IPv4，host:true 已绑定全网卡）
+npm run dev      # http://localhost:5173（本机）/ http://<本机IP>:5173（局域网，host:true 已绑定全网卡）
 ```
 
-开发服务器已配置 `/api` 代理到 `http://192.168.68.72:8081`（后端地址），
+开发服务器已配置 `/api` 代理到 `http://127.0.0.1:8081（本机回环，免疫 DHCP 换 IP）`（后端地址），
 因此前端直接请求 `/api/...` 即可，无需处理跨域。
 > IP 为 DHCP 分配，换网络后需同步修改 `vite.config.js` 的代理 target（详见根目录 PROJECT_AI_NOTE.md 第 14 节）。
 

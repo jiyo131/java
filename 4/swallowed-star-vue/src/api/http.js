@@ -1,5 +1,5 @@
 // 统一请求层：注入 token、拼 query、解包 { code, message, data }
-// 开发环境由 Vite 代理把 /api 转发到 http://192.168.68.72:8081
+// 开发环境由 Vite 代理把 /api 转发到 http://127.0.0.1:8081（vite 代理 target，本机回环，免疫 DHCP 换 IP）
 const BASE = '/api'
 const TOKEN_KEY = 'ss_token'
 

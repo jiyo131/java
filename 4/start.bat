@@ -11,6 +11,14 @@ REM   重置后 node_modules 常残留 108 个"空壳"包目录(有目录无文件),
 REM   脚本误判为已安装 -> 跳过 npm install -> npm run dev 找不到 vite,
 REM   报 "Cannot find module ...node_modules\vite\bin\vite.js" / 路径不正确。
 REM   现改为按关键文件 node_modules\vite\package.json 判断, 并自动清理空壳重装。
+REM 2026-11-06 修复「IP 漂移」:
+REM   本机 IP 由 DHCP 分配, 旧脚本硬编码 192.168.68.72, 换网络后失效(变为 .58),
+REM   导致前端 /api 代理打不到后端、提示信息也指错地址。
+REM   现改为启动时自动探测本机局域网 IPv4(取有默认网关的网卡, 天然排除
+REM   VMware/WSL 等无网关的虚拟网卡), 探测失败退回 127.0.0.1, 换网络无需改脚本。
+REM 2026-11-06 修复「jar 占用导致构建失败」:
+REM   旧脚本直接 mvn package, 若 8081 还有旧后端进程在跑, jar 被占用构建必失败。
+REM   现在打包前先按端口自动停掉残留的前后端进程(8081/5173)。
 REM ============================================================
 
 SETLOCAL
@@ -63,11 +71,17 @@ IF NOT DEFINED MAVEN (
 IF NOT DEFINED MAVEN SET "MAVEN=%BACKEND%\mvnw.cmd"
 echo 使用 Maven: %MAVEN%
 
-echo [1/5] 启动 MySQL 服务 (MySQL80) ...
+REM ---- 自动探测本机局域网 IPv4 (取有默认网关的网卡; VMware/WSL 虚拟网卡没有默认网关, 会被自动排除) ----
+SET "LAN_IP="
+FOR /F %%i IN ('powershell -NoProfile -Command "(Get-NetIPConfiguration | Where-Object { $_.IPv4DefaultGateway } | Select-Object -First 1).IPv4Address.IPAddress"') DO SET "LAN_IP=%%i"
+IF NOT DEFINED LAN_IP SET "LAN_IP=127.0.0.1"
+echo 本机局域网 IP: %LAN_IP%  (自动探测, 换网络无需改脚本)
+
+echo [1/6] 启动 MySQL 服务 (MySQL80) ...
 net start MySQL80 >nul 2>&1
 echo        如已运行会提示, 可忽略
 
-echo [2/5] 初始化数据库 (建库/建表, 可重复执行) ...
+echo [2/6] 初始化数据库 (建库/建表, 可重复执行) ...
 IF EXIST "%MYSQL%" (
   "%MYSQL%" -uroot -p123456 < "%BACKEND%\star_user.sql"
   IF ERRORLEVEL 1 (
@@ -79,13 +93,17 @@ IF EXIST "%MYSQL%" (
   echo        已跳过 ^(未找到 mysql 客户端^)
 )
 
-echo [3/5] 用 Maven 重新打包后端 (target 已清空, 必须重建) ...
+echo [3/6] 停止残留的前后端进程 (避免 jar 被占用导致构建失败) ...
+FOR /F "tokens=5" %%a IN ('netstat -ano ^| findstr ":8081" ^| findstr "LISTENING"') DO taskkill /PID %%a /F >nul 2>&1
+FOR /F "tokens=5" %%a IN ('netstat -ano ^| findstr ":5173" ^| findstr "LISTENING"') DO taskkill /PID %%a /F >nul 2>&1
+timeout /t 2 /nobreak >nul
+
+echo [4/6] 用 Maven 重新打包后端 (target 已清空, 必须重建) ...
 cd /d "%BACKEND%"
 call "%MAVEN%" -DskipTests package
 IF ERRORLEVEL 1 (
   echo [错误] 后端构建失败。
-  echo        常见原因: jar 被正在运行的后端占用 -> 先运行 pause.bat 停止旧进程再试;
-  echo                  或 Maven/网络异常, 请检查: %MAVEN%
+  echo        常见原因: Maven/网络异常, 请检查: %MAVEN%
   pause
   goto :eof
 )
@@ -95,13 +113,13 @@ IF NOT EXIST "%BACKEND%\target\springBootTest-0.0.1-SNAPSHOT.jar" (
   goto :eof
 )
 
-echo [4/5] 启动后端  http://192.168.68.72:8081 ...
+echo [5/6] 启动后端  http://%LAN_IP%:8081 ...
 start "swallowed-star-backend" cmd /k "cd /d "%BACKEND%" && java -jar target\springBootTest-0.0.1-SNAPSHOT.jar --server.port=8081 --spring.profiles.active=dev"
 
 echo        等待后端启动 10 秒 ...
 timeout /t 10 /nobreak >nul
 
-echo [5/5] 安装前端依赖并启动  http://192.168.68.72:5173 ...
+echo [6/6] 安装前端依赖并启动  http://%LAN_IP%:5173 ...
 cd /d "%FRONTEND%"
 REM 关键修复: 用 node_modules\vite\package.json 判断依赖是否真的装好了
 IF NOT EXIST "node_modules\vite\package.json" (
@@ -128,8 +146,8 @@ start "swallowed-star-frontend" cmd /k "cd /d "%FRONTEND%" && npm run dev"
 echo.
 echo ===================================================
 echo  启动完成!
-echo  前端: http://192.168.68.72:5173  (/api 自动代理到 8081)
-echo  后端: http://192.168.68.72:8081/api
+echo  本机访问:  http://localhost:5173
+echo  局域网访问: http://%LAN_IP%:5173  (/api 自动代理到 8081)
 echo  演示账号: admin / 123456  (首次启动自动创建)
 echo  停止项目请运行 pause.bat
 echo ===================================================

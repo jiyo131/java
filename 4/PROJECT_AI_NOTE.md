@@ -229,3 +229,15 @@
   重置密码→旧密失败新密成功/admin 停用删除均拒绝/删除（含关联清理）/未登录 401/概览账号数。
   `npm run lint` 0 error、`npm run build` 通过；vite 热更新后 /admin/users 路由 200。
 - 注意：curl 测试脚本里不要用 `UID` 当变量名（bash 只读变量），取 id 用别的名字。
+
+## 16. 脚本修复：IP 漂移 + jar 占用 + star_page_init.sql 旧版回魂（2026-11-06）
+本机重置后 DHCP IP 从 192.168.68.72 变为 192.168.68.58，暴露三处问题，已全部修复为「一劳永逸」方案：
+- **start.bat（GBK）**：
+  - 新增启动时自动探测本机局域网 IPv4（PowerShell `Get-NetIPConfiguration` 取有默认网关的网卡，天然排除 VMware/WSL 虚拟网卡；失败退回 127.0.0.1），提示文字全部用 `%LAN_IP%`，**换网络不再需要改脚本**。
+  - 打包步骤前新增 `[3/6]` 按端口自动停掉 8081/5173 残留进程，避免 jar 被占用导致 mvn package 失败。
+- **pause.bat（GBK）**：修正项目名「吞噬星空」→「狐妖小红娘」，补 `chcp 936`。
+- **vite.config.js**：`/api` 代理 target 由硬编码局域网 IP 改为 `http://127.0.0.1:8081`（vite 与后端同机，代理由 vite 服务端转发，回环地址永远可达；局域网设备照常经 `<本机IP>:5173` 访问，功能等价且免疫 DHCP 换 IP）。
+- **后端欢迎页 static/index.html / 教学首页 templates/user/main.html**：入口链接改为按 `location.hostname` 动态生成，访问后端用什么 IP 就跳什么 IP 的 5173。
+- **star_page_init.sql 重新生成**：机器重置把该文件还原成了 2026-11-02 删除前的旧版（含圣地秘境/法宝器物/两界组织全量 30 档案 13 分类），一旦执行就会把已删数据复活。已用 `springBootTest/build_page_init.py`（新增的生成脚本）重新拼接：schema.sql 7 张表 + data.sql 当前 18/4/10 种子 + admin（BCrypt 123456），临时库实测 4/18/10/1 通过。**以后 schema/data.sql 改动后重跑该 py 即可同步**。
+- 同步更新了 http.js/auth.js 注释、两份 README 中的旧 IP。
+- **遗留问题（已处理）**：本次排查时发现 live 库被灌回了 2026-11-02 删除前的全库备份（30 档案/13 分类/含 10-23 的用户 jwy），疑似 backup/swallowed_star_before_delete_20261102.sql 被执行或 MySQL 数据目录被回滚。经用户确认后已重新执行删除：删 9 分类（id 5-13）+ 12 档案（id 10-14,21,22,26-30），保留 jwy 账号；删前全库 dump 存 `backup/swallowed_star_before_redelete_20261106.sql`。已验证前后端 overview 恢复 18/4。

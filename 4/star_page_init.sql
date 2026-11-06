@@ -1,18 +1,14 @@
 -- ============================================================================
--- 涂山红线 · 页面数据独立建表脚本（star_page_init.sql）
--- ----------------------------------------------------------------------------
--- 作用：一键初始化「涂山人物志」首页全部页面数据 —— 建库 + 建表 + 种子数据
--- 内容：CREATE DATABASE swallowed_star
---       + 7 张表（分类 / 档案 / 检索日志 / 用户 / 任务 / 接取记录 / 情绪值）
---       + 种子数据：4 个分类、18 位人物档案、10 桩红线委托、演示账号 admin
--- 用法：mysql -uroot -p123456 --default-character-set=utf8mb4 < star_page_init.sql
--- 特性：全幂等（CREATE TABLE IF NOT EXISTS + INSERT IGNORE），可重复执行不产生脏数据
--- 说明：与后端启动初始化（springBootTest schema.sql / data.sql）内容保持一致，
---       独立使用时无需启动后端即可完成页面数据建表；登录页口令 admin / 123456
--- 生成：2026-11-04
+-- 涂山人物志 · 独立交付版建库脚本（自动生成，勿手改）
+-- 生成方式: springBootTest/build_page_init.py（拼接 schema.sql + data.sql）
+-- 内容: CREATE DATABASE swallowed_star + 全部 7 张表 DDL + 全部种子数据
+--       （4 分类 / 18 档案 / 10 委托）+ 演示账号 admin（BCrypt，口令 123456）
+-- 用法: mysql -uroot -p123456 --default-character-set=utf8mb4 < star_page_init.sql
+-- 全幂等: CREATE TABLE IF NOT EXISTS + INSERT IGNORE，重复执行不产生重复数据。
+-- 注意: 后端 schema.sql / data.sql 修改后，需重新运行生成脚本同步本文件。
 -- ============================================================================
 
-CREATE DATABASE IF NOT EXISTS swallowed_star DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
+CREATE DATABASE IF NOT EXISTS swallowed_star DEFAULT CHARSET utf8mb4 COLLATE utf8mb4_general_ci;
 USE swallowed_star;
 
 -- ============================================================================
@@ -147,10 +143,6 @@ CREATE TABLE IF NOT EXISTS star_user_emotion (
   updated_at      DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   PRIMARY KEY (user_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='红线仙情绪值';
-
--- ============================================================================
--- 种子数据（与 data.sql 一致，INSERT IGNORE 幂等）
--- ============================================================================
 
 -- ============================================================================
 -- 涂山人物志 · 首页种子数据
@@ -318,7 +310,7 @@ INSERT IGNORE INTO star_redline_task
  '苦情树', '✉️', '#ffd9a0', 3, 50, '不限时', '苦情树下', '心事,前世,执笔', 100, 1);
 
 -- ============================================================================
--- 演示账号（BCrypt 加密存储，明文口令 123456；后端启动时 DataInitializer 亦会自动补建）
+-- 演示账号 admin / 123456（BCrypt）
 -- ============================================================================
-INSERT IGNORE INTO star_user (id, username, password, nickname) VALUES
-(1, 'admin', '$2a$10$e0a0ekCLXJtsYvU1uZmEC..3j2XuVqEyhQXV/c1z8SN4VdBDs4jla', '涂山红娘');
+INSERT IGNORE INTO star_user (id, username, password, nickname, status) VALUES
+(1, 'admin', '$2a$10$uf50FiDCaTIukl0htoV5o.7PtPU19kevLAZg6OY7jTG/Fi/nGBAoC', '涂山红娘', 1);
