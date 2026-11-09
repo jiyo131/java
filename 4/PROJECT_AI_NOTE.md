@@ -241,3 +241,25 @@
 - **star_page_init.sql 重新生成**：机器重置把该文件还原成了 2026-11-02 删除前的旧版（含圣地秘境/法宝器物/两界组织全量 30 档案 13 分类），一旦执行就会把已删数据复活。已用 `springBootTest/build_page_init.py`（新增的生成脚本）重新拼接：schema.sql 7 张表 + data.sql 当前 18/4/10 种子 + admin（BCrypt 123456），临时库实测 4/18/10/1 通过。**以后 schema/data.sql 改动后重跑该 py 即可同步**。
 - 同步更新了 http.js/auth.js 注释、两份 README 中的旧 IP。
 - **遗留问题（已处理）**：本次排查时发现 live 库被灌回了 2026-11-02 删除前的全库备份（30 档案/13 分类/含 10-23 的用户 jwy），疑似 backup/swallowed_star_before_delete_20261102.sql 被执行或 MySQL 数据目录被回滚。经用户确认后已重新执行删除：删 9 分类（id 5-13）+ 12 档案（id 10-14,21,22,26-30），保留 jwy 账号；删前全库 dump 存 `backup/swallowed_star_before_redelete_20261106.sql`。已验证前后端 overview 恢复 18/4。
+
+## 17. 「我的主页」（2026-11-09 开发并全链路验证）
+导航在「红线仙任务」之后新增「🏠 我的主页」入口（Home.vue / RedLineTaskPage.vue / MyHome.vue 三处 navs 一致：全体档案 → 分类（首个分类后插任务）→ 我的主页），独立页面 `src/views/MyHome.vue`，路由 `/me`（登录守卫内，标题「我的主页 · 涂山红线仙」）。
+
+- 数据库：`star_user_emotion` 新增 `camp TINYINT NOT NULL DEFAULT 1`（1 修士 / 2 妖族）。老库迁移走 `DataInitializer` 幂等 ALTER（同 star_user.status 模式）；schema.sql 已同步；`star_page_init.sql` 已用 build_page_init.py 重新生成。
+- 境界体系：情绪值同时驱动两条 5 阶境界线（阈值与红线仙阶位一致 0/60/180/360/600）：
+  修士境界 练气期→筑基期→金丹期→元婴期→化神期；妖族境界 幼妖期→妖卒期→妖将期→妖王期→妖皇期。
+  每阶返回 reached/current/progress（本境进度百分比），当前境金色高亮。
+- 后端：`ProfileController /api/profile`（全部登录态，无 token 返回 body code=401，与 /api/tasks 一致）：
+  - GET `/me` → ProfileVo（username/nickname/camp/campText/emotion/totalGain/completedCount/
+    acceptedCount/cultivatorRealms/demonRealms/acceptedTasks/completedTasks/serverTime）；
+    任务接取情况复用 `TaskService.overview`，按 state 拆成进行中/已圆满两张卡列表。
+  - POST `/camp` body {camp:1|2} → 更新 star_user_emotion.camp（无情绪行则插入），非法值 400。
+  - 实现：`ProfileService` + `ProfileServiceImpl`（境界阶梯 buildLadder 静态方法），DTO `ProfileVo`（含内部类 RealmNode）。
+- 前端：`src/api/profile.js`（fetchProfile/updateCamp）；MyHome.vue 结构 = 面包屑（涂山人物志 › 我的主页）→
+  名帖卡（头像字/昵称/主修徽标/情绪值·累计·已圆满·进行中四统计）→ 主修阵营双卡（点击切阵营，徽标随动）→
+  修士境界阶梯 → 妖族境界阶梯 → 委托接取情况（进行中带「去完成」按钮跳 /tasks，已圆满带金色「已圆满」印章）。
+  样式在 style.css `.my-*` 块（含 ≤760px 响应式：阶梯降两列、阵营/接取单列）。
+- 已验证（curl + 真实 Chrome）：/me 各字段、无 token 401、camp 1↔2 切换、非法 camp 400、
+  接取后进行中 +1、完成后已圆满 +1 且情绪值进度联动（12/60→练气期 20%）、取消已完成拒绝；
+  浏览器实测登录 → 导航点击进入 /me → 点妖族一脉徽标变「妖族 · 主修」。`npm run lint`(0 error)/`build`、
+  `mvn package` 通过。演示数据已复位：admin 无任务记录、情绪值 0、camp=1。

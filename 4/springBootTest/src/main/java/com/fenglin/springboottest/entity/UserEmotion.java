@@ -26,5 +26,8 @@ public class UserEmotion {
     /** 累计完成委托数 */
     private Integer completedCount;
 
+    /** 修炼阵营：1 修士 / 2 妖族（决定「我的主页」默认展示的境界线） */
+    private Integer camp;
+
     private LocalDateTime updatedAt;
 }

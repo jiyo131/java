@@ -1001,3 +1001,144 @@ body.modal-locked .home-shell{overflow:hidden}
   .task-card{padding:16px 15px 13px}
   .task-desc{min-height:0}
 }
+
+/* ============================================================
+   我的主页（/me）：名帖卡 + 阵营抉择 + 修士/妖族境界线 + 接取情况
+   ============================================================ */
+.my-card{
+  position:relative;z-index:1;max-width:1080px;margin:0 auto 16px;
+  padding:20px 22px;border-radius:var(--radius);
+  background:var(--panel);border:1px solid var(--panel-line);
+  box-shadow:var(--shadow);backdrop-filter:blur(10px);
+}
+.my-title{
+  font-size:15px;letter-spacing:3px;color:var(--text);
+  background:linear-gradient(92deg,#ffe3ea 0%,var(--pink) 55%,var(--gold) 110%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+}
+.my-sub{margin-top:4px;font-size:11px;letter-spacing:1px;color:var(--muted)}
+.my-camp-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:14px}
+.my-link{
+  padding:0;border:0;background:none;cursor:pointer;font:inherit;
+  font-size:11.5px;letter-spacing:1px;color:var(--gold);transition:.2s;
+}
+.my-link:hover{color:var(--pink)}
+
+/* 名帖卡 */
+.my-idcard{display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap}
+.my-id-left{display:flex;align-items:center;gap:14px}
+.my-avatar{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:52px;height:52px;border-radius:50%;font-size:22px;font-weight:700;color:#5c1226;
+  background:linear-gradient(140deg,#ffd9e3,var(--pink) 60%,var(--rose));
+  box-shadow:0 0 0 2px rgba(255,217,160,.4),0 8px 22px rgba(255,92,122,.35);
+}
+.my-name{display:flex;align-items:center;gap:10px;font-size:18px;letter-spacing:2px}
+.my-camp-badge{
+  padding:2px 10px;border-radius:999px;font-size:10.5px;font-style:normal;letter-spacing:1.5px;
+  color:#fff3f6;background:linear-gradient(92deg,var(--rose),var(--gold-2));
+}
+.my-camp-badge.is-demon{background:linear-gradient(92deg,#9b6bff,var(--violet))}
+.my-account{margin-top:3px;font-size:11px;letter-spacing:1px;color:var(--muted)}
+.my-id-stats{display:flex;gap:26px}
+.my-stat{display:flex;flex-direction:column;align-items:center;gap:2px}
+.my-stat b{font-size:20px;color:var(--gold);text-shadow:0 0 12px rgba(255,217,160,.35)}
+.my-stat span{font-size:10.5px;letter-spacing:1.5px;color:var(--muted)}
+
+/* 阵营抉择 */
+.my-camp-opts{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.my-camp-opt{
+  display:flex;flex-direction:column;align-items:center;gap:6px;
+  padding:16px 12px;border-radius:14px;cursor:pointer;
+  background:rgba(28,13,22,.45);border:1px solid var(--panel-line);
+  color:var(--text);transition:.25s;
+}
+.my-camp-opt b{font-size:14px;letter-spacing:3px}
+.my-camp-desc{font-size:10.5px;letter-spacing:1px;color:var(--muted)}
+.my-camp-glyph{font-size:22px;line-height:1}
+.my-camp-opt.is-cultivator:hover{border-color:rgba(255,158,181,.5);background:rgba(255,158,181,.08)}
+.my-camp-opt.is-demon:hover{border-color:rgba(224,155,255,.5);background:rgba(224,155,255,.08)}
+.my-camp-opt.is-cultivator.on{
+  border-color:var(--rose);background:rgba(255,92,122,.12);
+  box-shadow:0 0 18px rgba(255,92,122,.25),inset 0 0 12px rgba(255,92,122,.08);
+}
+.my-camp-opt.is-demon.on{
+  border-color:var(--violet);background:rgba(224,155,255,.12);
+  box-shadow:0 0 18px rgba(224,155,255,.25),inset 0 0 12px rgba(224,155,255,.08);
+}
+.my-camp-opt:disabled{cursor:wait;opacity:.7}
+
+/* 境界阶梯：横向五阶 */
+.my-ladder{list-style:none;display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+.my-step{
+  position:relative;display:flex;flex-direction:column;align-items:center;gap:4px;
+  padding:14px 8px 12px;border-radius:12px;text-align:center;
+  background:rgba(28,13,22,.4);border:1px dashed rgba(255,178,199,.16);
+}
+.my-step-dot{
+  width:12px;height:12px;border-radius:50%;
+  background:rgba(255,178,199,.15);border:1px solid rgba(255,178,199,.35);transition:.25s;
+}
+.my-step-name{font-size:13px;letter-spacing:2px;color:var(--muted)}
+.my-step-floor{font-size:10px;letter-spacing:1px;color:rgba(199,154,169,.7)}
+.my-step.reached{border-style:solid;border-color:rgba(255,158,181,.35);background:rgba(255,92,122,.07)}
+.my-step.reached .my-step-dot{background:var(--pink);border-color:var(--rose);box-shadow:0 0 10px rgba(255,92,122,.5)}
+.my-step.reached .my-step-name{color:var(--text)}
+.my-step.now{
+  border-color:var(--gold);background:rgba(255,217,160,.08);
+  box-shadow:0 0 20px rgba(255,217,160,.18),inset 0 0 14px rgba(255,217,160,.06);
+}
+.my-step.now .my-step-dot{background:var(--gold);border-color:var(--gold-2);box-shadow:0 0 12px rgba(255,217,160,.65)}
+.my-step.now .my-step-name{
+  background:linear-gradient(92deg,#ffe3ea,var(--pink) 55%,var(--gold));
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+}
+.my-step-progress{
+  width:86%;height:5px;margin-top:4px;border-radius:999px;overflow:hidden;
+  background:rgba(255,178,199,.14);
+}
+.my-step-progress i{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,var(--pink),var(--gold))}
+.my-step-done{font-size:10px;letter-spacing:1px;color:rgba(255,158,181,.65)}
+.my-step-max{font-size:10px;letter-spacing:1px;color:var(--gold)}
+
+/* 接取情况 */
+.my-tasks{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.my-col-title{margin-bottom:10px;font-size:12.5px;letter-spacing:2px}
+.my-col-title.is-doing{color:var(--pink)}
+.my-col-title.is-done{color:var(--gold)}
+.my-empty{
+  padding:18px 12px;border-radius:12px;text-align:center;
+  font-size:11.5px;letter-spacing:1px;color:var(--muted);
+  background:rgba(28,13,22,.35);border:1px dashed rgba(255,178,199,.16);
+}
+.my-task{
+  display:flex;align-items:center;gap:12px;margin-bottom:10px;
+  padding:12px 14px;border-radius:12px;
+  background:rgba(28,13,22,.4);border:1px solid var(--panel-line);transition:.2s;
+}
+.my-task:hover{border-color:var(--task-color,var(--pink));transform:translateY(-1px)}
+.my-task.is-doing{border-left:3px solid var(--pink)}
+.my-task.is-done{border-left:3px solid var(--gold);opacity:.92}
+.my-task-glyph{font-size:20px;line-height:1;filter:drop-shadow(0 0 8px rgba(255,92,122,.35))}
+.my-task-text{flex:1;min-width:0}
+.my-task-text b{display:block;font-size:13px;letter-spacing:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.my-task-text span{display:block;margin-top:2px;font-size:10.5px;letter-spacing:.5px;color:var(--muted)}
+.my-task-btn{
+  padding:5px 12px;border-radius:999px;cursor:pointer;
+  font-size:11px;letter-spacing:1px;color:#5c1226;
+  background:linear-gradient(92deg,var(--pink),var(--gold));border:0;transition:.2s;
+}
+.my-task-btn:hover{filter:brightness(1.08);box-shadow:0 0 14px rgba(255,158,181,.4)}
+.my-task-seal{
+  padding:3px 10px;border-radius:999px;flex-shrink:0;
+  font-size:10px;letter-spacing:2px;color:var(--gold);
+  border:1px solid rgba(255,217,160,.45);background:rgba(255,217,160,.08);
+}
+
+@media (max-width:760px){
+  .my-card{padding:16px 14px}
+  .my-id-stats{gap:16px}
+  .my-camp-opts{grid-template-columns:1fr}
+  .my-ladder{grid-template-columns:1fr 1fr}
+  .my-tasks{grid-template-columns:1fr}
+}

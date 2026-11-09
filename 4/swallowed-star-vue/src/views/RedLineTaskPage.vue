@@ -53,16 +53,23 @@ const nickname = ref((session && (session.nickname || session.username)) || '红
 const categories = ref([])
 const stats = ref({ entryCount: 0, categoryCount: 0, viewCount: 0 })
 
-// 红线仙任务固定排在首个一级分类（人物档案）之后
+// 红线仙任务固定排在首个一级分类（人物档案）之后，「我的主页」紧随其后
 const navs = computed(() => {
   const list = [{ key: 'all', label: '全体档案', count: stats.value.entryCount }]
   const taskNav = { key: 'tasks', label: '红线仙任务' }
+  const meNav = { key: 'me', label: '我的主页' }
   categories.value.forEach((c, i) => {
     list.push({ key: String(c.id), label: c.name, count: c.count })
-    if (i === 0) list.push(taskNav)
+    if (i === 0) {
+      list.push(taskNav)
+      list.push(meNav)
+    }
   })
-  // 分类尚未返回时也保留任务入口，避免导航闪烁丢项
-  if (!categories.value.length) list.push(taskNav)
+  // 分类尚未返回时也保留任务 / 主页入口，避免导航闪烁丢项
+  if (!categories.value.length) {
+    list.push(taskNav)
+    list.push(meNav)
+  }
   return list
 })
 
@@ -83,6 +90,10 @@ async function loadOverview() {
 
 function onNav(n) {
   if (!n || n.key === 'tasks') return
+  if (n.key === 'me') {
+    router.push('/me')
+    return
+  }
   router.push({ path: '/home', query: { cat: n.key } })
 }
 

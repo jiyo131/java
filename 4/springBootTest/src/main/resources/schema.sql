@@ -127,6 +127,7 @@ CREATE TABLE IF NOT EXISTS star_user_emotion (
   emotion         INT      NOT NULL DEFAULT 0      COMMENT '当前情绪值',
   total_gain      INT      NOT NULL DEFAULT 0      COMMENT '累计获得情绪值',
   completed_count INT      NOT NULL DEFAULT 0      COMMENT '累计完成委托数',
+  camp            TINYINT  NOT NULL DEFAULT 1      COMMENT '修炼阵营：1 修士 / 2 妖族',
   updated_at      DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   PRIMARY KEY (user_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='红线仙情绪值';

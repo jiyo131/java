@@ -35,6 +35,14 @@ public class DataInitializer implements CommandLineRunner {
             // 列已存在（Duplicate column name）→ 忽略
         }
 
+        // --- 老库迁移：star_user_emotion 增加 camp 列（我的主页·修炼阵营 1 修士 / 2 妖族） ---
+        try {
+            jdbcTemplate.execute("ALTER TABLE star_user_emotion ADD COLUMN camp TINYINT NOT NULL DEFAULT 1 "
+                    + "COMMENT '修炼阵营：1 修士 / 2 妖族'");
+        } catch (DataAccessException ignore) {
+            // 列已存在 → 忽略
+        }
+
         // --- 演示管理员 ---
         BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
         if (userService.lambdaQuery().eq(User::getUsername, "admin").count() == 0) {

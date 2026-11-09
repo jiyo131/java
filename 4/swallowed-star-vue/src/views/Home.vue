@@ -301,12 +301,19 @@ const activeSub = ref(null)
 const navs = computed(() => {
   const list = [{ key: 'all', label: '全体档案', count: stats.value.entryCount }]
   const taskNav = { key: 'tasks', label: '红线仙任务' }
+  const meNav = { key: 'me', label: '我的主页' }
   categories.value.forEach((c, i) => {
     list.push({ key: String(c.id), label: c.name, count: c.count })
-    if (i === 0) list.push(taskNav)
+    if (i === 0) {
+      list.push(taskNav)
+      list.push(meNav)
+    }
   })
-  // 分类尚未返回时也保留任务入口，避免导航闪烁丢项
-  if (!categories.value.length) list.push(taskNav)
+  // 分类尚未返回时也保留任务 / 主页入口，避免导航闪烁丢项
+  if (!categories.value.length) {
+    list.push(taskNav)
+    list.push(meNav)
+  }
   return list
 })
 
@@ -404,9 +411,13 @@ async function loadEntries({ reset = true, record = true } = {}) {
 
 /* ===== 交互 ===== */
 function onNav(n) {
-  // 红线仙任务已是独立页面，点击导航直接跳转
+  // 红线仙任务 / 我的主页均为独立页面，点击导航直接跳转
   if (n.key === 'tasks') {
     router.push('/tasks')
+    return
+  }
+  if (n.key === 'me') {
+    router.push('/me')
     return
   }
   if (activeNav.value === n.key && !activeSub.value) return
