@@ -22,8 +22,11 @@ public class ProfileVo {
     /** 阵营文案：修士 / 妖族 */
     private String campText;
 
-    /** 当前情绪值 */
+    /** 当前情绪值（商店货币） */
     private Integer emotion = 0;
+
+    /** 累计修为（境界依据，只增不减） */
+    private Integer cultivation = 0;
 
     /** 累计获得情绪值 */
     private Integer totalGain = 0;
@@ -34,10 +37,10 @@ public class ProfileVo {
     /** 进行中委托数 */
     private Integer acceptedCount = 0;
 
-    /** 修士境界线（情绪值驱动，5 阶） */
+    /** 修士境界线（累计修为驱动，5 阶） */
     private List<RealmNode> cultivatorRealms;
 
-    /** 妖族境界线（情绪值驱动，5 阶） */
+    /** 妖族境界线（累计修为驱动，5 阶） */
     private List<RealmNode> demonRealms;
 
     /** 进行中的委托 */
@@ -49,7 +52,7 @@ public class ProfileVo {
     private String serverTime;
 
     /**
-     * 境界阶梯节点：情绪值达到 floor 即踏入该境，nextThreshold 为下一境门槛。
+     * 境界阶梯节点：累计修为达到 floor 即踏入该境，nextThreshold 为下一境门槛。
      */
     @Data
     public static class RealmNode {
@@ -60,7 +63,7 @@ public class ProfileVo {
         /** 境界名称 */
         private String title;
 
-        /** 踏入该境所需情绪值 */
+        /** 踏入该境所需累计修为 */
         private Integer floor;
 
         /** 下一境门槛（最高境为 null） */

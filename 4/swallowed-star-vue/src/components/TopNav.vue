@@ -20,6 +20,7 @@
       >
         <span v-if="n.key === 'tasks'" class="nav-glyph" aria-hidden="true">🧵</span>
         <span v-else-if="n.key === 'me'" class="nav-glyph" aria-hidden="true">🏠</span>
+        <span v-else-if="n.key === 'shop'" class="nav-glyph" aria-hidden="true">🎁</span>
         {{ n.label }}
         <em v-if="n.count !== undefined && n.count !== null" class="nav-count">{{ n.count }}</em>
       </button>

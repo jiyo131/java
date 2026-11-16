@@ -1,11 +1,14 @@
 package com.fenglin.springboottest.service.impl;
 
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import com.fenglin.springboottest.common.RealmLadder;
 import com.fenglin.springboottest.controller.dto.ProfileVo;
 import com.fenglin.springboottest.controller.dto.TaskCard;
 import com.fenglin.springboottest.controller.dto.TaskOverview;
 import com.fenglin.springboottest.entity.User;
+import com.fenglin.springboottest.entity.UserCultivation;
 import com.fenglin.springboottest.entity.UserEmotion;
+import com.fenglin.springboottest.mapper.UserCultivationMapper;
 import com.fenglin.springboottest.mapper.UserEmotionMapper;
 import com.fenglin.springboottest.mapper.UserMapper;
 import com.fenglin.springboottest.service.ProfileService;
@@ -21,8 +24,9 @@ import java.util.List;
 /**
  * 「我的主页」实现。
  *
- * 境界体系：情绪值（完成红线仙委托累积）同时驱动两条境界线，
- * 修士与妖族各有 5 阶，阈值与红线仙阶位一致（0/60/180/360/600）：
+ * 境界体系（2026-11-16 起）：两条境界线改由「累计修为」驱动（star_user_cultivation.total_cultivation，
+ * 只增不减，见 RealmLadder），与情绪值（商店货币）彻底分离，兑换消费不再掉境界：
+ *  - 修为来源：每日打坐 + 服用丹药/参悟功法（CultivationService）
  *  - 修士境界：练气期 → 筑基期 → 金丹期 → 元婴期 → 化神期
  *  - 妖族境界：幼妖期 → 妖卒期 → 妖将期 → 妖王期 → 妖皇期
  * 用户可择一为主修阵营（star_user_emotion.camp），主页默认高亮该境界线。
@@ -34,11 +38,6 @@ public class ProfileServiceImpl implements ProfileService {
 
     private static final DateTimeFormatter TIME_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
-    /** 境界阈值（升序），与红线仙阶位共用同一套情绪值 */
-    private static final int[] REALM_FLOORS = {0, 60, 180, 360, 600};
-    private static final String[] CULTIVATOR_TITLES = {"练气期", "筑基期", "金丹期", "元婴期", "化神期"};
-    private static final String[] DEMON_TITLES = {"幼妖期", "妖卒期", "妖将期", "妖王期", "妖皇期"};
-
     public static final int CAMP_CULTIVATOR = 1;
     public static final int CAMP_DEMON = 2;
 
@@ -47,6 +46,9 @@ public class ProfileServiceImpl implements ProfileService {
 
     @Autowired
     private UserEmotionMapper emotionMapper;
+
+    @Autowired
+    private UserCultivationMapper cultivationMapper;
 
     @Autowired
     private TaskService taskService;
@@ -62,6 +64,8 @@ public class ProfileServiceImpl implements ProfileService {
         UserEmotion emotion = emotionMapper.selectOne(Wrappers.lambdaQuery(UserEmotion.class)
                 .eq(UserEmotion::getUserId, userId)
                 .last("LIMIT 1"));
+        UserCultivation cult = cultivationMapper.selectById(userId);
+        int cultivation = cult == null ? 0 : nvl(cult.getTotalCultivation());
         int camp = emotion == null || emotion.getCamp() == null ? CAMP_CULTIVATOR
                 : (emotion.getCamp() == CAMP_DEMON ? CAMP_DEMON : CAMP_CULTIVATOR);
 
@@ -72,11 +76,12 @@ public class ProfileServiceImpl implements ProfileService {
         vo.setCamp(camp);
         vo.setCampText(camp == CAMP_DEMON ? "妖族" : "修士");
         vo.setEmotion(ov.getEmotion());
+        vo.setCultivation(cultivation);
         vo.setTotalGain(ov.getTotalGain());
         vo.setCompletedCount(ov.getCompletedCount());
 
-        vo.setCultivatorRealms(buildLadder(CULTIVATOR_TITLES, ov.getEmotion()));
-        vo.setDemonRealms(buildLadder(DEMON_TITLES, ov.getEmotion()));
+        vo.setCultivatorRealms(RealmLadder.build(RealmLadder.CULTIVATOR_TITLES, cultivation));
+        vo.setDemonRealms(RealmLadder.build(RealmLadder.DEMON_TITLES, cultivation));
 
         List<TaskCard> accepted = new ArrayList<>();
         List<TaskCard> completed = new ArrayList<>();
@@ -121,36 +126,7 @@ public class ProfileServiceImpl implements ProfileService {
 
     /* ================= 内部辅助 ================= */
 
-    /** 按情绪值生成一条境界线：标记当前境 / 已达成 / 本境进度 */
-    private static List<ProfileVo.RealmNode> buildLadder(String[] titles, int emotion) {
-        int currentIdx = 0;
-        for (int i = 0; i < REALM_FLOORS.length; i++) {
-            if (emotion >= REALM_FLOORS[i]) {
-                currentIdx = i;
-            }
-        }
-
-        List<ProfileVo.RealmNode> list = new ArrayList<>(titles.length);
-        for (int i = 0; i < titles.length; i++) {
-            ProfileVo.RealmNode node = new ProfileVo.RealmNode();
-            node.setIndex(i + 1);
-            node.setTitle(titles[i]);
-            node.setFloor(REALM_FLOORS[i]);
-            boolean reached = emotion >= REALM_FLOORS[i];
-            node.setReached(reached);
-            node.setCurrent(i == currentIdx);
-
-            Integer next = i + 1 < REALM_FLOORS.length ? REALM_FLOORS[i + 1] : null;
-            node.setNextThreshold(next);
-            if (next == null) {
-                node.setProgress(100);
-            } else {
-                int span = next - REALM_FLOORS[i];
-                int pct = span <= 0 ? 100 : (int) Math.round((emotion - REALM_FLOORS[i]) * 100.0 / span);
-                node.setProgress(Math.max(0, Math.min(100, pct)));
-            }
-            list.add(node);
-        }
-        return list;
+    private static int nvl(Integer value) {
+        return value == null ? 0 : value;
     }
 }

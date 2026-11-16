@@ -131,3 +131,55 @@ CREATE TABLE IF NOT EXISTS star_user_emotion (
   updated_at      DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   PRIMARY KEY (user_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='红线仙情绪值';
+
+-- 8) 兑换商店商品 -----------------------------------------------------------
+-- 苦情树旁的小铺：法宝 / 丹药 / 功法三柜，以情绪值为通货。
+-- price 为兑换所需情绪值；stock=-1 表示不限量，>=0 表示剩余库存（兑一次减一）。
+CREATE TABLE IF NOT EXISTS star_shop_item (
+  id          BIGINT       NOT NULL AUTO_INCREMENT COMMENT '主键',
+  code        VARCHAR(48)  NOT NULL                COMMENT '商品编码（唯一，便于脚本引用）',
+  category    VARCHAR(16)  NOT NULL                COMMENT '分类：fabao 法宝 / danyao 丹药 / gongfa 功法',
+  name        VARCHAR(64)  NOT NULL                COMMENT '商品名称',
+  subtitle    VARCHAR(128) DEFAULT NULL            COMMENT '副标题 / 一句话说明',
+  description VARCHAR(500) DEFAULT NULL            COMMENT '商品详情',
+  glyph       VARCHAR(16)  DEFAULT NULL            COMMENT '商品图标（emoji）',
+  color       VARCHAR(16)  DEFAULT NULL            COMMENT '商品主色（#RRGGBB），驱动前端卡片光效',
+  price       INT          NOT NULL DEFAULT 10     COMMENT '兑换所需情绪值',
+  exp_gain    INT          NOT NULL DEFAULT 0      COMMENT '服用/参悟可得修为（0 表示不可服用，如法宝）',
+  stock       INT          NOT NULL DEFAULT -1     COMMENT '剩余库存，-1 不限量',
+  tags        VARCHAR(255) DEFAULT NULL            COMMENT '关键词标签，英文逗号分隔',
+  sort_no     INT          NOT NULL DEFAULT 0      COMMENT '排序（小值优先）',
+  status      TINYINT      NOT NULL DEFAULT 1      COMMENT '状态：1 上架 / 0 下架',
+  created_at  DATETIME     DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_item_code (code),
+  KEY idx_item_cat (category, status, sort_no)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='兑换商店商品表';
+
+-- 9) 兑换记录 ---------------------------------------------------------------
+-- 只增不改：兑换即扣情绪值并落一条记录；库存不为 -1 时同步减一。
+-- 丹药 / 功法可在「我的主页」服用转为修为：used 1 未使用 / 2 已服用。
+CREATE TABLE IF NOT EXISTS star_shop_record (
+  id         BIGINT   NOT NULL AUTO_INCREMENT COMMENT '主键',
+  user_id    BIGINT   NOT NULL                COMMENT '兑换人 id',
+  item_id    BIGINT   NOT NULL                COMMENT '商品 id',
+  price      INT      NOT NULL DEFAULT 0      COMMENT '成交时消耗的情绪值',
+  used       TINYINT  NOT NULL DEFAULT 1      COMMENT '1 未使用 / 2 已服用（法宝无服用概念，恒为 1）',
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '兑换时间',
+  PRIMARY KEY (id),
+  KEY idx_shop_record_user (user_id, item_id),
+  KEY idx_shop_record_item (item_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='兑换商店兑换记录';
+
+-- 10) 用户修为（2026-11-16 新增） --------------------------------------------
+-- 境界（修士/妖族两线）改由「累计修为」驱动，与情绪值（商店货币）彻底分离：
+--   total_cultivation 只增不减，境界永不回退；
+--   修为来源：每日打坐（meditate_date 记录最近打坐日，一天一次）+ 服用丹药/参悟功法。
+CREATE TABLE IF NOT EXISTS star_user_cultivation (
+  user_id           BIGINT   NOT NULL                COMMENT '用户 id（主键）',
+  total_cultivation INT      NOT NULL DEFAULT 0      COMMENT '累计修为（境界依据，只增不减）',
+  meditate_date     DATE     DEFAULT NULL            COMMENT '最近一次打坐日期（判每日一次）',
+  meditate_count    INT      NOT NULL DEFAULT 0      COMMENT '累计打坐次数',
+  updated_at        DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='红线仙修为（境界驱动）';

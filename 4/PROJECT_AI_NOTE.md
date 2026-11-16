@@ -263,3 +263,63 @@
   接取后进行中 +1、完成后已圆满 +1 且情绪值进度联动（12/60→练气期 20%）、取消已完成拒绝；
   浏览器实测登录 → 导航点击进入 /me → 点妖族一脉徽标变「妖族 · 主修」。`npm run lint`(0 error)/`build`、
   `mvn package` 通过。演示数据已复位：admin 无任务记录、情绪值 0、camp=1。
+
+## 15. 兑换商店（2026-11-16 开发并全链路验证）
+独立页面 `src/views/ShopPage.vue`，路由 `/shop`（登录守卫内，标题「兑换商店 · 涂山小铺」）。
+导航入口固定排在「我的主页」之后，四个页面（Home / RedLineTaskPage / MyHome / ShopPage）的
+navs computed 末尾统一 push `{ key:'shop', label:'兑换商店' }`，TopNav 图标 🎁。
+
+- **玩法闭环**：做任务赚情绪值 → 商店兑换。商品分三柜：法宝 fabao / 丹药 danyao / 功法 gongfa，
+  以情绪值为通货（price），stock=-1 不限量 / >=0 限量（兑一次减一）。
+- 数据库（schema.sql §8-9，data.sql 已种 12 件商品，各柜 4 件）：
+  `star_shop_item`（code 唯一）、`star_shop_record`（只增不改，price 记成交价）。
+- 后端：`ShopController /api/shop`（全登录态，401 走 body code 约定同 TaskController）：
+  GET 看板（商品 + 情绪值/阶位 + 我的兑换记录倒序）、POST `/{id}/redeem`。
+  `ShopServiceImpl.redeem`：synchronized + @Transactional，校验上架/库存/余额 → 扣情绪值
+  （只动 emotion，不动 total_gain/completed_count）→ 减库存 → 落记录。
+- 前端：`src/api/shop.js`；商店页含店招（情绪钱袋卡，兑换成功 bump 动效）、四页签
+  （全部/法宝/丹药/功法，带数量角标）、货架卡片（emoji 主色卡、标签、余量、两段确认兑换：
+  先点变「确认兑」4s 内再点才扣值，仿任务页取消确认）、「我的兑换」记录区 + 去接委托入口。
+- 已验证（curl 全链路）：看板 12 件 4/4/4、兑换扣值（125→65）、余额不足报差值、
+  限量库存 30→28、售罄 400、不存在商品 400、无 token body code=401、重复兑换正常累计。
+  `npm run build`、`npm run lint` 通过；`mvn -DskipTests package` 通过（先停 8081 java）。
+  测试数据已复原：admin 情绪值 125、库存复位、star_shop_record 清空。
+- `star_page_init.sql` 已同步（现含 10 张表 + 12 件商品），临时库完整跑通验证。
+
+## 16. 修为体系：境界与情绪值分离（2026-11-16 开发并全链路验证）
+应需求「修炼不要用情绪值来增加境界」重构：**情绪值 = 商店货币（可花掉），修为 = 境界驱动（只增不减）**。
+此前境界直接按当前情绪值算，兑换消费会导致境界倒退——已彻底修复。
+
+- **修为来源（用户选定两途径，未选「完成委托双结算」）**：
+  ① 每日打坐：`POST /api/cultivation/meditate`，每自然日一次（meditate_date 判定），随机 5-12 修为；
+  ② 服用丹药 / 参悟功法：商店兑入后主页「服用」，消耗一条兑换记录转修为（exp_gain：丹药 15/25/30/80，功法 20/35/50/80；法宝 exp_gain=0 不可服用）。
+- **数据库（存量库已 ALTER，schema.sql 同步）**：
+  新表 `star_user_cultivation`（user_id PK / total_cultivation / meditate_date / meditate_count）；
+  `star_shop_item` 加 `exp_gain`；`star_shop_record` 加 `used`（1 未使用 / 2 已服用）。
+  境界阈值沿用 0/60/180/360/600（练气→筑基→金丹→元婴→化神 / 幼妖→妖卒→妖将→妖王→妖皇）。
+- **后端**：`common/RealmLadder`（公共阶梯工具，Profile 与 Cultivation 共用）、`common/Categories`；
+  `CultivationController /api/cultivation`：GET 面板（修为+今日状态+可服用背包）、POST `/meditate`、
+  POST `/use/{recordId}`（synchronized+事务；校验归属/未服用/品类/仅丹药功法）；升境时返回 levelUp+realmTitle。
+  `ProfileServiceImpl` 境界改由 cultivationMapper 读累计修为；ProfileVo 新增 `cultivation` 字段；
+  `ShopCard` 新增 `expGain`（商店卡可标注服用收益）。
+- **前端**：`api/cultivation.js`；MyHome 新增「修炼」卡（累计修为大数字 + 打坐按钮每日一次态 +
+  可服用列表服用按钮，服用/升境 toast，升境按钮 flash）；两条境界线文案「情绪值」→「修为」，
+  realmSummary 改用 profile.cultivation；ShopPage 商品卡标「服用 +N 修为」、兑入可服用道具后 toast 指引去主页。
+- **已验证（curl 全链路）**：面板初始 0 → 打坐 +8（随机段 5-12 内）→ 重复打坐 400 → profile 修为线正确 →
+  兑忘忧散（expGain=15 透出）→ 服用 +15（8→23）→ 重复服用 400 → 兑王权剑后修为不变（消费不掉境界核心验证）→
+  法宝不出现在可服用列表、强服 400；`npm run build/lint`、`mvn -DskipTests package` 通过。
+  测试数据已复原（admin 情绪值 125 / 库存复位 / shop_record 与 cultivation 清空，今日打坐次数归零可重试）。
+- `star_page_init.sql` 已再同步（11 张表，含 exp_gain/used/修为表），脚本语法经实际执行验证。
+
+## 17. 任务奖励按品阶定档（2026-11-16 更新）
+应用户要求，完成委托的情绪值奖励改为按品阶（difficulty）定档，上下限 500~2000：
+**轻缘(difficulty=1) 500 / 深缘(2) 1200 / 宿缘(3) 2000**（用户确认档位，且明确**不同步**放大商店价格与红线仙阶位阈值）。
+
+- data.sql：10 个任务的 reward 按难度更新，注释同步「按品阶定档」；存量库用
+  `UPDATE star_redline_task SET reward=CASE difficulty WHEN 1 THEN 500 WHEN 2 THEN 1200 ELSE 2000 END` 打补丁
+  （INSERT IGNORE 不更新已有行，改种子必须同时改存量）。
+- star_page_init.sql 任务段已同步（3×500 / 4×1200 / 3×2000）。
+- 后端零改动（reward 从库读）；无需重新打包。curl 实测：任务列表展示新奖励、
+  完成 RL-001 到账 +500（125→625），测试痕迹已复原（admin 回到 125 / 记录删除）。
+- 教训：data.sql 批量改值时正则分组计数错位曾把 `12, '当日可成'` 拼坏成 `50012当日可成'`，
+  已按「新奖励+旧奖励+时长」形态逐行修复并复核 10 行三元组完整。

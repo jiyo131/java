@@ -302,6 +302,7 @@ const navs = computed(() => {
   const list = [{ key: 'all', label: '全体档案', count: stats.value.entryCount }]
   const taskNav = { key: 'tasks', label: '红线仙任务' }
   const meNav = { key: 'me', label: '我的主页' }
+  const shopNav = { key: 'shop', label: '兑换商店' }
   categories.value.forEach((c, i) => {
     list.push({ key: String(c.id), label: c.name, count: c.count })
     if (i === 0) {
@@ -309,11 +310,12 @@ const navs = computed(() => {
       list.push(meNav)
     }
   })
-  // 分类尚未返回时也保留任务 / 主页入口，避免导航闪烁丢项
+  // 分类尚未返回时也保留任务 / 主页 / 商店入口，避免导航闪烁丢项
   if (!categories.value.length) {
     list.push(taskNav)
     list.push(meNav)
   }
+  list.push(shopNav)
   return list
 })
 
@@ -418,6 +420,10 @@ function onNav(n) {
   }
   if (n.key === 'me') {
     router.push('/me')
+    return
+  }
+  if (n.key === 'shop') {
+    router.push('/shop')
     return
   }
   if (activeNav.value === n.key && !activeSub.value) return
