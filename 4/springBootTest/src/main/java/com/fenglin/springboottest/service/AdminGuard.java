@@ -7,14 +7,14 @@ import org.springframework.stereotype.Service;
 /**
  * 后台管理鉴权组件。
  *
- * <p>当前约定：star_user 表中用户名为 admin 的账号即为后台管理员（演示项目从简，
- * 不单独建管理员表）。所有 /api/admin/** 接口在业务处理前先通过本组件校验，
+ * <p>当前约定：star_user 表 permission=0 的账号即为管理员权限（1 为默认权限），
+ * 只有管理员权限才能访问后台。所有 /api/admin/** 接口在业务处理前先通过本组件校验，
  * 非管理员一律返回 401。</p>
  */
 @Service
 public class AdminGuard {
 
-    /** 管理员账号名，与 DataInitializer 创建的演示账号保持一致 */
+    /** 内置演示管理员账号名（受不可停用/不可删除等保护规则约束） */
     public static final String ADMIN_USERNAME = "admin";
 
     @Autowired
@@ -25,7 +25,7 @@ public class AdminGuard {
 
     /**
      * 根据 Authorization 头解析出管理员用户。
-     * @return 管理员用户；token 无效或不是管理员时返回 null
+     * @return 管理员用户；token 无效或权限不是管理员权限（permission != 0）时返回 null
      */
     public User adminOf(String authorization) {
         Long uid = tokenStore.resolveUserId(authorization);
@@ -33,7 +33,7 @@ public class AdminGuard {
             return null;
         }
         User user = userService.getById(uid);
-        if (user == null || !ADMIN_USERNAME.equals(user.getUsername())) {
+        if (user == null || user.getPermission() == null || user.getPermission() != 0) {
             return null;
         }
         // 账号被停用后，已签发的 token 立即失效

@@ -165,7 +165,7 @@ export async function adminUsers(p = {}) {
   return res.data
 }
 
-/** 新增账号（密码 BCrypt 加密入库） */
+/** 新增账号（密码明文入库，权限为默认权限 permission=1） */
 export async function adminCreateUser(user) {
   const res = await request('POST', '/admin/users', { body: user })
   return res.data
@@ -177,7 +177,7 @@ export async function adminUpdateUser(id, user) {
   return res.data
 }
 
-/** 停用 / 启用（内置 admin 不允许停用） */
+/** 停用 / 启用（管理员权限账号不允许停用） */
 export async function adminUserStatus(id, status) {
   const res = await request('PUT', `/admin/users/${id}/status`, { body: { status } })
   return res.data
@@ -189,8 +189,86 @@ export async function adminUserPassword(id, password) {
   return res.data
 }
 
-/** 删除账号（内置 admin 不允许删除；后端同时清理任务记录与情绪值） */
+/** 删除账号（管理员权限账号不允许删除；后端同时清理任务记录与情绪值） */
 export async function adminDeleteUser(id) {
   const res = await request('DELETE', `/admin/users/${id}`)
+  return res.data
+}
+
+/* ===== 任务管理（首页「红线仙任务」告示板数据） ===== */
+/**
+ * 任务列表（含下架数据）
+ * @param {object} p { keyword, difficulty(-1 全部/1 轻缘/2 深缘/3 宿缘), status(-1 全部/1 可接取/0 下架), page, size }
+ */
+export async function adminTasks(p = {}) {
+  const res = await request('GET', '/admin/tasks', { params: p })
+  return res.data
+}
+
+/** 新增任务 */
+export async function adminCreateTask(task) {
+  const res = await request('POST', '/admin/tasks', { body: task })
+  return res.data
+}
+
+/** 修改任务 */
+export async function adminUpdateTask(id, task) {
+  const res = await request('PUT', `/admin/tasks/${id}`, { body: task })
+  return res.data
+}
+
+/** 上架（可接取）/ 下架 */
+export async function adminTaskStatus(id, status) {
+  const res = await request('PUT', `/admin/tasks/${id}/status`, { body: { status } })
+  return res.data
+}
+
+/** 删除任务（已有接取记录时后端拒绝） */
+export async function adminDeleteTask(id) {
+  const res = await request('DELETE', `/admin/tasks/${id}`)
+  return res.data
+}
+
+/* ===== 商店管理（首页「兑换商店」数据） ===== */
+
+/**
+ * 商品列表（含下架数据）
+ * @param {object} p { keyword, category(''/fabao/danyao/gongfa), status(-1 全部/1 上架/0 下架), page, size }
+ */
+export async function adminShopItems(p = {}) {
+  const res = await request('GET', '/admin/shop/items', { params: p })
+  return res.data
+}
+
+/** 新增商品 */
+export async function adminCreateShopItem(item) {
+  const res = await request('POST', '/admin/shop/items', { body: item })
+  return res.data
+}
+
+/** 修改商品 */
+export async function adminUpdateShopItem(id, item) {
+  const res = await request('PUT', `/admin/shop/items/${id}`, { body: item })
+  return res.data
+}
+
+/** 上架 / 下架 */
+export async function adminShopItemStatus(id, status) {
+  const res = await request('PUT', `/admin/shop/items/${id}/status`, { body: { status } })
+  return res.data
+}
+
+/** 删除商品（已有兑换记录时后端拒绝） */
+export async function adminDeleteShopItem(id) {
+  const res = await request('DELETE', `/admin/shop/items/${id}`)
+  return res.data
+}
+
+/**
+ * 兑换记录列表（新纪录在前）
+ * @param {object} p { used(-1 全部/1 未使用/2 已服用), itemId, page, size }
+ */
+export async function adminShopRecords(p = {}) {
+  const res = await request('GET', '/admin/shop/records', { params: p })
   return res.data
 }

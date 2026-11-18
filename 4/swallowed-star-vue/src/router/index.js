@@ -10,6 +10,8 @@ import AdminLayout from '../views/admin/AdminLayout.vue'
 import AdminEntries from '../views/admin/AdminEntries.vue'
 import AdminCategories from '../views/admin/AdminCategories.vue'
 import AdminUsers from '../views/admin/AdminUsers.vue'
+import AdminTasks from '../views/admin/AdminTasks.vue'
+import AdminShop from '../views/admin/AdminShop.vue'
 
 const TOKEN_KEY = 'ss_token'
 const ADMIN_TOKEN_KEY = 'ss_admin_token'
@@ -36,7 +38,9 @@ const routes = [
       { path: '', redirect: '/admin/entries' },
       { path: 'entries', name: 'admin-entries', component: AdminEntries, meta: { title: '档案管理 · 后台管理系统' } },
       { path: 'categories', name: 'admin-categories', component: AdminCategories, meta: { title: '分类管理 · 后台管理系统' } },
-      { path: 'users', name: 'admin-users', component: AdminUsers, meta: { title: '账号管理 · 后台管理系统' } }
+      { path: 'users', name: 'admin-users', component: AdminUsers, meta: { title: '账号管理 · 后台管理系统' } },
+      { path: 'tasks', name: 'admin-tasks', component: AdminTasks, meta: { title: '任务管理 · 后台管理系统' } },
+      { path: 'shop', name: 'admin-shop', component: AdminShop, meta: { title: '商店管理 · 后台管理系统' } }
     ]
   }
 ]

@@ -2,7 +2,7 @@
 -- 涂山人物志 · 独立交付版建库脚本（自动生成，勿手改）
 -- 生成方式: springBootTest/build_page_init.py（拼接 schema.sql + data.sql）
 -- 内容: CREATE DATABASE swallowed_star + 全部 7 张表 DDL + 全部种子数据
---       （4 分类 / 18 档案 / 10 委托）+ 演示账号 admin（BCrypt，口令 123456）
+--       （4 分类 / 18 档案 / 10 委托）+ 演示账号 admin（明文密码，口令 123456，管理员权限）
 -- 用法: mysql -uroot -p123456 --default-character-set=utf8mb4 < star_page_init.sql
 -- 全幂等: CREATE TABLE IF NOT EXISTS + INSERT IGNORE，重复执行不产生重复数据。
 -- 注意: 后端 schema.sql / data.sql 修改后，需重新运行生成脚本同步本文件。
@@ -86,9 +86,10 @@ CREATE TABLE IF NOT EXISTS star_search_log (
 CREATE TABLE IF NOT EXISTS star_user (
   id          BIGINT       NOT NULL AUTO_INCREMENT COMMENT '主键',
   username    VARCHAR(32)  NOT NULL                COMMENT '账号',
-  password    VARCHAR(128) NOT NULL                COMMENT '密码（BCrypt 加密存储）',
+  password    VARCHAR(128) NOT NULL                COMMENT '密码（明文存储）',
   nickname    VARCHAR(64)  DEFAULT NULL            COMMENT '昵称',
   status      TINYINT      NOT NULL DEFAULT 1      COMMENT '状态：1 正常 / 0 停用（停用后无法登录）',
+  permission  TINYINT      NOT NULL DEFAULT 1      COMMENT '权限：1 默认权限 / 0 管理员权限（0 才能看到并登录后台管理系统）',
   created_at  DATETIME     DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   PRIMARY KEY (id),
   UNIQUE KEY uk_username (username)
@@ -144,6 +145,58 @@ CREATE TABLE IF NOT EXISTS star_user_emotion (
   updated_at      DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   PRIMARY KEY (user_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='红线仙情绪值';
+
+-- 8) 兑换商店商品 -----------------------------------------------------------
+-- 苦情树旁的小铺：法宝 / 丹药 / 功法三柜，以情绪值为通货。
+-- price 为兑换所需情绪值；stock=-1 表示不限量，>=0 表示剩余库存（兑一次减一）。
+CREATE TABLE IF NOT EXISTS star_shop_item (
+  id          BIGINT       NOT NULL AUTO_INCREMENT COMMENT '主键',
+  code        VARCHAR(48)  NOT NULL                COMMENT '商品编码（唯一，便于脚本引用）',
+  category    VARCHAR(16)  NOT NULL                COMMENT '分类：fabao 法宝 / danyao 丹药 / gongfa 功法',
+  name        VARCHAR(64)  NOT NULL                COMMENT '商品名称',
+  subtitle    VARCHAR(128) DEFAULT NULL            COMMENT '副标题 / 一句话说明',
+  description VARCHAR(500) DEFAULT NULL            COMMENT '商品详情',
+  glyph       VARCHAR(16)  DEFAULT NULL            COMMENT '商品图标（emoji）',
+  color       VARCHAR(16)  DEFAULT NULL            COMMENT '商品主色（#RRGGBB），驱动前端卡片光效',
+  price       INT          NOT NULL DEFAULT 10     COMMENT '兑换所需情绪值',
+  exp_gain    INT          NOT NULL DEFAULT 0      COMMENT '服用/参悟可得修为（0 表示不可服用，如法宝）',
+  stock       INT          NOT NULL DEFAULT -1     COMMENT '剩余库存，-1 不限量',
+  tags        VARCHAR(255) DEFAULT NULL            COMMENT '关键词标签，英文逗号分隔',
+  sort_no     INT          NOT NULL DEFAULT 0      COMMENT '排序（小值优先）',
+  status      TINYINT      NOT NULL DEFAULT 1      COMMENT '状态：1 上架 / 0 下架',
+  created_at  DATETIME     DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_item_code (code),
+  KEY idx_item_cat (category, status, sort_no)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='兑换商店商品表';
+
+-- 9) 兑换记录 ---------------------------------------------------------------
+-- 只增不改：兑换即扣情绪值并落一条记录；库存不为 -1 时同步减一。
+-- 丹药 / 功法可在「我的主页」服用转为修为：used 1 未使用 / 2 已服用。
+CREATE TABLE IF NOT EXISTS star_shop_record (
+  id         BIGINT   NOT NULL AUTO_INCREMENT COMMENT '主键',
+  user_id    BIGINT   NOT NULL                COMMENT '兑换人 id',
+  item_id    BIGINT   NOT NULL                COMMENT '商品 id',
+  price      INT      NOT NULL DEFAULT 0      COMMENT '成交时消耗的情绪值',
+  used       TINYINT  NOT NULL DEFAULT 1      COMMENT '1 未使用 / 2 已服用（法宝无服用概念，恒为 1）',
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '兑换时间',
+  PRIMARY KEY (id),
+  KEY idx_shop_record_user (user_id, item_id),
+  KEY idx_shop_record_item (item_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='兑换商店兑换记录';
+
+-- 10) 用户修为（2026-11-16 新增） --------------------------------------------
+-- 境界（修士/妖族两线）改由「累计修为」驱动，与情绪值（商店货币）彻底分离：
+--   total_cultivation 只增不减，境界永不回退；
+--   修为来源：每日打坐（meditate_date 记录最近打坐日，一天一次）+ 服用丹药/参悟功法。
+CREATE TABLE IF NOT EXISTS star_user_cultivation (
+  user_id           BIGINT   NOT NULL                COMMENT '用户 id（主键）',
+  total_cultivation INT      NOT NULL DEFAULT 0      COMMENT '累计修为（境界依据，只增不减）',
+  meditate_date     DATE     DEFAULT NULL            COMMENT '最近一次打坐日期（判每日一次）',
+  meditate_count    INT      NOT NULL DEFAULT 0      COMMENT '累计打坐次数',
+  updated_at        DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='红线仙修为（境界驱动）';
 
 -- ============================================================================
 -- 涂山人物志 · 首页种子数据
@@ -310,71 +363,7 @@ INSERT IGNORE INTO star_redline_task
 (10, 'RL-010', '写给前世的一封信', '替红线仙写一封不必寄出的信', '苦情树下压着一封没写完的信，写信的人已经转世，忘了自己写过。红线仙的任务很简单：替他把最后一句补上。写完，情绪值最高。',
  '苦情树', '✉️', '#ffd9a0', 3, 2000, '不限时', '苦情树下', '心事,前世,执笔', 100, 1);
 
-
 -- ============================================================================
--- 演示账号 admin / 123456（BCrypt）
--- ============================================================================
-INSERT IGNORE INTO star_user (id, username, password, nickname, status) VALUES
-(1, 'admin', '$2a$10$uf50FiDCaTIukl0htoV5o.7PtPU19kevLAZg6OY7jTG/Fi/nGBAoC', '涂山红娘', 1);
-
--- ============================================================================
--- ============================================================================
--- 兑换商店 + 修为体系（2026-11-16 新增/更新）
--- 商店：法宝/丹药/功法，情绪值为通货；丹药功法可服用转修为（exp_gain/used）。
--- 修为：star_user_cultivation 累计修为驱动境界（每日打坐 + 服用转化），与情绪值分离。
--- ============================================================================
--- 8) 兑换商店商品 -----------------------------------------------------------
--- 苦情树旁的小铺：法宝 / 丹药 / 功法三柜，以情绪值为通货。
--- price 为兑换所需情绪值；stock=-1 表示不限量，>=0 表示剩余库存（兑一次减一）。
-CREATE TABLE IF NOT EXISTS star_shop_item (
-  id          BIGINT       NOT NULL AUTO_INCREMENT COMMENT '主键',
-  code        VARCHAR(48)  NOT NULL                COMMENT '商品编码（唯一，便于脚本引用）',
-  category    VARCHAR(16)  NOT NULL                COMMENT '分类：fabao 法宝 / danyao 丹药 / gongfa 功法',
-  name        VARCHAR(64)  NOT NULL                COMMENT '商品名称',
-  subtitle    VARCHAR(128) DEFAULT NULL            COMMENT '副标题 / 一句话说明',
-  description VARCHAR(500) DEFAULT NULL            COMMENT '商品详情',
-  glyph       VARCHAR(16)  DEFAULT NULL            COMMENT '商品图标（emoji）',
-  color       VARCHAR(16)  DEFAULT NULL            COMMENT '商品主色（#RRGGBB），驱动前端卡片光效',
-  price       INT          NOT NULL DEFAULT 10     COMMENT '兑换所需情绪值',
-  exp_gain    INT          NOT NULL DEFAULT 0      COMMENT '服用/参悟可得修为（0 表示不可服用，如法宝）',
-  stock       INT          NOT NULL DEFAULT -1     COMMENT '剩余库存，-1 不限量',
-  tags        VARCHAR(255) DEFAULT NULL            COMMENT '关键词标签，英文逗号分隔',
-  sort_no     INT          NOT NULL DEFAULT 0      COMMENT '排序（小值优先）',
-  status      TINYINT      NOT NULL DEFAULT 1      COMMENT '状态：1 上架 / 0 下架',
-  created_at  DATETIME     DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-  PRIMARY KEY (id),
-  UNIQUE KEY uk_item_code (code),
-  KEY idx_item_cat (category, status, sort_no)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='兑换商店商品表';
-
--- 9) 兑换记录 ---------------------------------------------------------------
--- 只增不改：兑换即扣情绪值并落一条记录；库存不为 -1 时同步减一。
--- 丹药 / 功法可在「我的主页」服用转为修为：used 1 未使用 / 2 已服用。
-CREATE TABLE IF NOT EXISTS star_shop_record (
-  id         BIGINT   NOT NULL AUTO_INCREMENT COMMENT '主键',
-  user_id    BIGINT   NOT NULL                COMMENT '兑换人 id',
-  item_id    BIGINT   NOT NULL                COMMENT '商品 id',
-  price      INT      NOT NULL DEFAULT 0      COMMENT '成交时消耗的情绪值',
-  used       TINYINT  NOT NULL DEFAULT 1      COMMENT '1 未使用 / 2 已服用（法宝无服用概念，恒为 1）',
-  created_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '兑换时间',
-  PRIMARY KEY (id),
-  KEY idx_shop_record_user (user_id, item_id),
-  KEY idx_shop_record_item (item_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='兑换商店兑换记录';
-
--- 10) 用户修为（2026-11-16 新增） --------------------------------------------
--- 境界（修士/妖族两线）改由「累计修为」驱动，与情绪值（商店货币）彻底分离：
---   total_cultivation 只增不减，境界永不回退；
---   修为来源：每日打坐（meditate_date 记录最近打坐日，一天一次）+ 服用丹药/参悟功法。
-CREATE TABLE IF NOT EXISTS star_user_cultivation (
-  user_id           BIGINT   NOT NULL                COMMENT '用户 id（主键）',
-  total_cultivation INT      NOT NULL DEFAULT 0      COMMENT '累计修为（境界依据，只增不减）',
-  meditate_date     DATE     DEFAULT NULL            COMMENT '最近一次打坐日期（判每日一次）',
-  meditate_count    INT      NOT NULL DEFAULT 0      COMMENT '累计打坐次数',
-  updated_at        DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-  PRIMARY KEY (user_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='红线仙修为（境界驱动）';
-
 -- 兑换商店（法宝 / 丹药 / 功法 三柜，以情绪值为通货）
 -- 固定 id 1-12，code 唯一；INSERT IGNORE 保证重复启动不产生脏数据。
 -- price = 兑换所需情绪值；stock = -1 不限量 / >=0 限量。
@@ -417,3 +406,9 @@ INSERT IGNORE INTO star_shop_item
 
 (12, 'SHOP-GF-04', 'gongfa', '纯爱天成（残卷）', '东方灵血激发的至高神通', '记载着「灭妖神火·纯爱天成」起手式的残卷，缺了后一半。缺的部分要靠自己的故事补全——这很狐妖。',
  '📕', '#ff9eb5', 480, 80, 3, '纯爱天成,神火,残卷', 40, 1);
+
+-- ============================================================================
+-- 演示账号 admin / 123456（明文密码，permission=0 管理员权限）
+-- ============================================================================
+INSERT IGNORE INTO star_user (id, username, password, nickname, status, permission) VALUES
+(1, 'admin', '123456', '涂山红娘', 1, 0);

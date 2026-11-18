@@ -9,13 +9,12 @@ ROOT = Path(r"D:/workSpace/java/4")
 RES = ROOT / "springBootTest" / "src" / "main" / "resources"
 OUT = ROOT / "star_page_init.sql"
 
-ADMIN_HASH = "$2a$10$uf50FiDCaTIukl0htoV5o.7PtPU19kevLAZg6OY7jTG/Fi/nGBAoC"  # 123456
-
+ADMIN_PASSWORD = "123456"  # 明文存储
 header = """-- ============================================================================
 -- 涂山人物志 · 独立交付版建库脚本（自动生成，勿手改）
 -- 生成方式: springBootTest/build_page_init.py（拼接 schema.sql + data.sql）
 -- 内容: CREATE DATABASE swallowed_star + 全部 7 张表 DDL + 全部种子数据
---       （4 分类 / 18 档案 / 10 委托）+ 演示账号 admin（BCrypt，口令 123456）
+--       （4 分类 / 18 档案 / 10 委托）+ 演示账号 admin（明文密码，口令 123456，管理员权限）
 -- 用法: mysql -uroot -p123456 --default-character-set=utf8mb4 < star_page_init.sql
 -- 全幂等: CREATE TABLE IF NOT EXISTS + INSERT IGNORE，重复执行不产生重复数据。
 -- 注意: 后端 schema.sql / data.sql 修改后，需重新运行生成脚本同步本文件。
@@ -28,10 +27,10 @@ USE swallowed_star;
 
 footer = f"""
 -- ============================================================================
--- 演示账号 admin / 123456（BCrypt）
+-- 演示账号 admin / 123456（明文密码，permission=0 管理员权限）
 -- ============================================================================
-INSERT IGNORE INTO star_user (id, username, password, nickname, status) VALUES
-(1, 'admin', '{ADMIN_HASH}', '涂山红娘', 1);
+INSERT IGNORE INTO star_user (id, username, password, nickname, status, permission) VALUES
+(1, 'admin', '{ADMIN_PASSWORD}', '涂山红娘', 1, 0);
 """
 
 schema = (RES / "schema.sql").read_text(encoding="utf-8")

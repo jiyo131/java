@@ -21,6 +21,12 @@
         <RouterLink class="ad-tab" :class="{ active: $route.name === 'admin-users' }" to="/admin/users">
           账号管理
         </RouterLink>
+        <RouterLink class="ad-tab" :class="{ active: $route.name === 'admin-tasks' }" to="/admin/tasks">
+          任务管理
+        </RouterLink>
+        <RouterLink class="ad-tab" :class="{ active: $route.name === 'admin-shop' }" to="/admin/shop">
+          商店管理
+        </RouterLink>
       </nav>
 
       <span class="ad-spacer"></span>
@@ -65,7 +71,9 @@ const avatarChar = computed(() => (nickname.value || '管')[0])
 const stats = ref({
   entryTotal: 0, entryOnline: 0, entryOffline: 0,
   categoryTotal: 0, viewTotal: 0, searchCount30d: 0,
-  userTotal: 0, userOnline: 0
+  userTotal: 0, userOnline: 0,
+  taskTotal: 0, taskOnline: 0,
+  shopTotal: 0, shopOnline: 0
 })
 
 const statCards = computed(() => [
@@ -73,6 +81,10 @@ const statCards = computed(() => [
   { key: 'online', icon: '✅', label: '上架中', value: stats.value.entryOnline },
   { key: 'offline', icon: '🗂️', label: '已下架', value: stats.value.entryOffline },
   { key: 'category', icon: '🏷️', label: '分类数', value: stats.value.categoryTotal },
+  { key: 'task', icon: '📜', label: '任务总数', value: stats.value.taskTotal },
+  { key: 'taskOnline', icon: '🧵', label: '可接取任务', value: stats.value.taskOnline },
+  { key: 'shop', icon: '🎁', label: '商品总数', value: stats.value.shopTotal },
+  { key: 'shopOnline', icon: '🛍️', label: '上架商品', value: stats.value.shopOnline },
   { key: 'user', icon: '👥', label: '账号数', value: stats.value.userTotal },
   { key: 'userOnline', icon: '🧑', label: '正常账号', value: stats.value.userOnline },
   { key: 'view', icon: '👁️', label: '累计浏览量', value: stats.value.viewTotal },

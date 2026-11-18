@@ -73,9 +73,10 @@ CREATE TABLE IF NOT EXISTS star_search_log (
 CREATE TABLE IF NOT EXISTS star_user (
   id          BIGINT       NOT NULL AUTO_INCREMENT COMMENT '主键',
   username    VARCHAR(32)  NOT NULL                COMMENT '账号',
-  password    VARCHAR(128) NOT NULL                COMMENT '密码（BCrypt 加密存储）',
+  password    VARCHAR(128) NOT NULL                COMMENT '密码（明文存储）',
   nickname    VARCHAR(64)  DEFAULT NULL            COMMENT '昵称',
   status      TINYINT      NOT NULL DEFAULT 1      COMMENT '状态：1 正常 / 0 停用（停用后无法登录）',
+  permission  TINYINT      NOT NULL DEFAULT 1      COMMENT '权限：1 默认权限 / 0 管理员权限（0 才能看到并登录后台管理系统）',
   created_at  DATETIME     DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   PRIMARY KEY (id),
   UNIQUE KEY uk_username (username)

@@ -4,6 +4,7 @@
     :navs="navs"
     :active-key="activeNav"
     :nickname="nickname"
+    :is-admin="isAdmin"
     @select="onNav"
     @home="scrollTop"
     @admin="goAdmin"
@@ -287,6 +288,8 @@ const FALLBACK_COLOR = '#ff9eb5'
 /* ===== 用户会话（token 失效自动退回登录页） ===== */
 const session = getSession()
 const nickname = ref((session && (session.nickname || session.username)) || '红线仙缘')
+// 管理员权限（permission=0）才显示「后台管理」按钮
+const isAdmin = ref(false)
 
 /* ===== 首页聚合数据 ===== */
 const categories = ref([])
@@ -574,6 +577,7 @@ onMounted(async () => {
     return
   }
   nickname.value = me.nickname || me.username || nickname.value
+  isAdmin.value = me.permission === 0
 
   await loadOverview()
 

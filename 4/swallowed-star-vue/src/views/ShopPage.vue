@@ -4,6 +4,7 @@
     :navs="navs"
     active-key="shop"
     :nickname="nickname"
+    :is-admin="isAdmin"
     @select="onNav"
     @home="goHome"
     @admin="goAdmin"
@@ -174,6 +175,8 @@ const CONFIRM_RESET_MS = 4000 // 兑换确认 4s 未点则收回，避免手滑
 
 const session = getSession()
 const nickname = ref((session && (session.nickname || session.username)) || '红线仙缘')
+// 管理员权限（permission=0）才显示「后台管理」按钮
+const isAdmin = ref(false)
 
 const board = ref({})
 const loading = ref(true)
@@ -310,6 +313,7 @@ onMounted(async () => {
     return
   }
   nickname.value = me.nickname || me.username || nickname.value
+  isAdmin.value = me.permission === 0
   await Promise.all([loadShop(), loadOverview()])
 })
 

@@ -32,7 +32,8 @@
     <div class="nav-user">
       <span class="avatar">{{ avatarChar }}</span>
       <span class="name">{{ nickname }}</span>
-      <button class="btn-admin" @click="emit('admin')">
+      <!-- 后台管理系统入口：仅管理员权限（permission=0）可见 -->
+      <button v-if="isAdmin" class="btn-admin" @click="emit('admin')">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/><circle cx="12" cy="15" r="1.4"/>
         </svg>
@@ -54,7 +55,9 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 const props = defineProps({
   navs: { type: Array, default: () => [] },
   activeKey: { type: String, default: '' },
-  nickname: { type: String, default: '红线仙缘' }
+  nickname: { type: String, default: '红线仙缘' },
+  /** 是否管理员权限（permission=0）：决定「后台管理」按钮是否显示 */
+  isAdmin: { type: Boolean, default: false }
 })
 
 const emit = defineEmits(['select', 'home', 'admin', 'logout'])

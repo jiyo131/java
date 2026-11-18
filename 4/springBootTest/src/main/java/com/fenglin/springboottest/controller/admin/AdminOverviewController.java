@@ -4,8 +4,12 @@ import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.fenglin.springboottest.common.Result;
 import com.fenglin.springboottest.entity.Category;
 import com.fenglin.springboottest.entity.Entry;
+import com.fenglin.springboottest.entity.RedLineTask;
 import com.fenglin.springboottest.entity.SearchLog;
+import com.fenglin.springboottest.entity.ShopItem;
 import com.fenglin.springboottest.entity.User;
+import com.fenglin.springboottest.mapper.RedLineTaskMapper;
+import com.fenglin.springboottest.mapper.ShopItemMapper;
 import com.fenglin.springboottest.service.AdminGuard;
 import com.fenglin.springboottest.service.CategoryService;
 import com.fenglin.springboottest.service.EntryService;
@@ -44,6 +48,12 @@ public class AdminOverviewController {
     @Autowired
     private UserService userService;
 
+    @Autowired
+    private RedLineTaskMapper taskMapper;
+
+    @Autowired
+    private ShopItemMapper shopItemMapper;
+
     @GetMapping
     public Result<Map<String, Object>> overview(@RequestHeader(value = "Authorization", required = false) String auth) {
         if (adminGuard.adminOf(auth) == null) {
@@ -58,6 +68,16 @@ public class AdminOverviewController {
         // 账号统计：总数 + 正常可用数（账号管理页的数据概览）
         data.put("userTotal", userService.count());
         data.put("userOnline", userService.lambdaQuery().eq(User::getStatus, 1).count());
+
+        // 任务统计：总数 + 可接取数（任务管理页的数据概览）
+        data.put("taskTotal", taskMapper.selectCount(null));
+        data.put("taskOnline", taskMapper.selectCount(
+                Wrappers.lambdaQuery(RedLineTask.class).eq(RedLineTask::getStatus, 1)));
+
+        // 商店统计：商品总数 + 上架数（商店管理页的数据概览）
+        data.put("shopTotal", shopItemMapper.selectCount(null));
+        data.put("shopOnline", shopItemMapper.selectCount(
+                Wrappers.lambdaQuery(ShopItem.class).eq(ShopItem::getStatus, 1)));
 
         // 浏览量合计（单条聚合 SQL）
         List<Object> viewSum = entryService.listObjs(

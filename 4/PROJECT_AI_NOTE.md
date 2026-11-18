@@ -311,6 +311,66 @@ navs computed 末尾统一 push `{ key:'shop', label:'兑换商店' }`，TopNav 
   测试数据已复原（admin 情绪值 125 / 库存复位 / shop_record 与 cultivation 清空，今日打坐次数归零可重试）。
 - `star_page_init.sql` 已再同步（11 张表，含 exp_gain/used/修为表），脚本语法经实际执行验证。
 
+## 18. 用户权限字段 + 密码明文化（2026-11-18 开发并全链路验证）
+应需求：star_user 新增 `permission TINYINT NOT NULL DEFAULT 1`（**1 默认权限 / 0 管理员权限**），
+注册用户一律默认权限；只有管理员权限（permission=0）才能看到首页「后台管理」按钮并登录后台；
+同时 star_user 密码改为**明文存储，不再 BCrypt**。
+
+- 数据库：schema.sql star_user 加 permission 列 + 密码注释改明文；老库迁移走 DataInitializer
+  幂等 ALTER（同 status 模式）。**存量 BCrypt 密码（$2 开头）无法反推明文，启动时统一重置为 123456**；
+  admin 权限兜底置 0。star_page_init.sql 已用 build_page_init.py 重新生成
+  （footer 的 admin INSERT 改为明文密码 + permission=0，生成脚本变量 ADMIN_HASH → ADMIN_PASSWORD）。
+- 后端：
+  - `UserServiceImpl`：register 明文入库 + permission=1；login 改明文 equals 比对（BCrypt 移除）。
+  - `LoginResponse` 新增 permission 字段（前台 /auth/login、/auth/me、后台 /admin/auth/* 均返回）。
+  - `AdminGuard.adminOf` 改按 `permission == 0` 判管理员（不再看 username=admin）；
+    ADMIN_USERNAME 常量保留，仅用于演示账号身份。
+  - `AdminAuthController.login`：先正常校验账号密码，再校验 permission=0，
+    非管理员权限返回「该账号不具备后台管理权限」。
+  - `AdminUserController`：新增账号/重置密码明文入库（新账号 permission=1）；
+    保护规则从「内置 admin」改为「permission=0 管理员权限账号不可停用/删除」；
+    列表 toMap 增加 permission，admin 标记按 permission 判定。
+- 前端：`TopNav.vue` 新增 `isAdmin` prop，「后台管理」按钮 v-if 控制；
+  Home / RedLineTaskPage / MyHome / ShopPage 四页新增 isAdmin ref，
+  fetchMe 后按 `me.permission === 0` 设置并传给 TopNav。
+- 已验证（curl）：注册用户 permission=1 明文入库、admin permission=0、
+  普通用户登后台被拒、普通用户带前台 token 访问 /api/admin/** 401、
+  admin 登后台正常、后台重置密码后明文可登录、错误密码拒绝、
+  /auth/me 返回 permission；lint(0 error)/build、mvn package 通过。
+  测试账号 permtest01 已删除还原。
+- 遗留说明：历史 BCrypt 账号会被启动迁移重置为 123456（明文无法反推）。
+
+## 19. 后台「任务管理 / 商店管理」（2026-11-18 开发并全链路验证）
+后台新增第四、第五个页签，分别管理首页「红线仙任务」告示板与「兑换商店」的数据。
+
+- 后端（均在 `controller/admin/`，全部先过 AdminGuard）：
+  - `AdminTaskController /api/admin/tasks`：GET 列表（keyword 匹配名称/编码/副标题/委托方/标签、
+    difficulty 1轻缘/2深缘/3宿缘、status 1可接取/0下架 筛选，含下架数据，分页，行带 acceptedCount 接取人次）、
+    POST 新增、PUT /{id} 编辑（编码不可重复，编辑弹窗里编码禁改）、PUT /{id}/status 上下架、
+    DELETE /{id}（**已有 star_task_record 接取记录时拒绝删除**，提示改用下架）。
+    校验：编码必填唯一（字母/数字/_/-）、名称必填 ≤64、难度 1-3、奖励 ≥0、各字段长度。
+  - `AdminShopController /api/admin/shop`：`/items` GET 列表（keyword 含名称/编码/副标题/标签、
+    category fabao/danyao/gongfa、status 筛选，行带 price/expGain/stock）、POST/PUT/PUT status/DELETE
+    （**已有 star_shop_record 兑换记录时拒绝删除**；非法分类拒绝；stock 只能 -1 或 ≥0）；
+    `/records` GET 兑换记录（used 1未使用/2已服用、itemId 筛选，倒序分页，行内批量带用户名/商品名，
+    用户已删显示「已注销用户」、商品已删显示「已删除商品」）。
+  - `AdminOverviewController` 概览新增 taskTotal/taskOnline、shopTotal/shopOnline。
+- 前端：
+  - `views/admin/AdminTasks.vue`：工具栏（关键词/难度/状态筛选）+ 表格（图标/难度徽章/情绪值/
+    委托方·地点/接取人次/状态/操作）+ 分页 + 新增/编辑弹窗（编码、标题、副标题、详情、委托方、
+    地点、难度、奖励、时限、标签、图标、排序、状态）。
+  - `views/admin/AdminShop.vue`：页内双页签「商品管理 / 兑换记录」；商品表格（图标/分类徽章/
+    价格/修为收益/库存（-1 显示不限）/状态/操作）+ 弹窗；记录表格（用户/商品/消耗/使用状态/时间），
+    记录页可按使用状态与商品筛选。
+  - `admin.js` 加 9 个接口封装（adminTasks/adminCreateTask/adminUpdateTask/adminTaskStatus/
+    adminDeleteTask + adminShopItems/adminCreateShopItem/adminUpdateShopItem/adminShopItemStatus/
+    adminDeleteShopItem/adminShopRecords）；router 加 admin-tasks / admin-shop 路由；
+    AdminLayout 加两页签 + 「📜 任务总数 / 🧵 可接取任务 / 🎁 商品总数 / 🛍️ 上架商品」四张统计卡。
+- 已验证（curl）：任务/商品列表与筛选（含按编码搜索）、新增、重复编码/非法分类拒绝、编辑、
+  下架、删除（有记录的商品删除被拒）、未登录 401、兑换记录筛选；测试数据已删还原（10 任务/12 商品）。
+  `npm run lint`(0 error)/`build`、`mvn -DskipTests package` 通过；后端已重启（8081）。
+- 设计决定：不提供「接取/兑换记录的删除」，记录属流水数据；数据回滚用 SQL 手工处理。
+
 ## 17. 任务奖励按品阶定档（2026-11-16 更新）
 应用户要求，完成委托的情绪值奖励改为按品阶（difficulty）定档，上下限 500~2000：
 **轻缘(difficulty=1) 500 / 深缘(2) 1200 / 宿缘(3) 2000**（用户确认档位，且明确**不同步**放大商店价格与红线仙阶位阈值）。

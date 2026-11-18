@@ -34,15 +34,12 @@ public class AdminAuthController {
     @Autowired
     private AdminGuard adminGuard;
 
-    /** 管理员登录：校验通过后签发 token */
+    /** 管理员登录：校验通过后签发 token（仅 permission=0 管理员权限账号可登录） */
     @PostMapping("/login")
     public Result<LoginResponse> login(@RequestBody LoginRequest req) {
         String username = req.getUsername() == null ? "" : req.getUsername().trim();
         if (username.isEmpty() || req.getPassword() == null || req.getPassword().isEmpty()) {
             return Result.fail("请输入管理员账号和密码");
-        }
-        if (!AdminGuard.ADMIN_USERNAME.equals(username)) {
-            return Result.fail("该账号不具备后台管理权限");
         }
         User user = userService.login(username, req.getPassword());
         if (user == null) {
@@ -51,8 +48,12 @@ public class AdminAuthController {
         if (user.getStatus() != null && user.getStatus() == 0) {
             return Result.fail("该账号已被停用，请联系管理员");
         }
+        // 只有管理员权限（permission=0）才能登录后台管理系统
+        if (user.getPermission() == null || user.getPermission() != 0) {
+            return Result.fail("该账号不具备后台管理权限");
+        }
         String token = tokenStore.createToken(user.getId());
-        return Result.ok(new LoginResponse(token, user.getUsername(), user.getNickname()));
+        return Result.ok(new LoginResponse(token, user.getUsername(), user.getNickname(), user.getPermission()));
     }
 
     /** 校验当前管理员登录态 */
@@ -66,7 +67,7 @@ public class AdminAuthController {
         if (token.startsWith("Bearer ")) {
             token = token.substring(7).trim();
         }
-        return Result.ok(new LoginResponse(token, admin.getUsername(), admin.getNickname()));
+        return Result.ok(new LoginResponse(token, admin.getUsername(), admin.getNickname(), admin.getPermission()));
     }
 
     /** 退出后台 */

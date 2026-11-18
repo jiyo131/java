@@ -55,7 +55,7 @@ public class AuthController {
             return Result.fail("该账号已被停用，请联系管理员");
         }
         String token = tokenStore.createToken(user.getId());
-        return Result.ok(new LoginResponse(token, user.getUsername(), user.getNickname()));
+        return Result.ok(new LoginResponse(token, user.getUsername(), user.getNickname(), user.getPermission()));
     }
 
     /** 获取当前登录用户信息 */
@@ -76,7 +76,7 @@ public class AuthController {
         if (user.getStatus() != null && user.getStatus() == 0) {
             return Result.fail(401, "该账号已被停用");
         }
-        return Result.ok(new LoginResponse(token, user.getUsername(), user.getNickname()));
+        return Result.ok(new LoginResponse(token, user.getUsername(), user.getNickname(), user.getPermission()));
     }
 
     /** 注销 */

@@ -12,7 +12,6 @@ import com.fenglin.springboottest.mapper.UserEmotionMapper;
 import com.fenglin.springboottest.service.AdminGuard;
 import com.fenglin.springboottest.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -32,7 +31,7 @@ import java.util.Map;
 /**
  * 后台 · 账号管理（star_user 增删改查）。
  *
- * <p>保护规则：内置管理员账号（admin）不可停用、不可删除、不可修改账号名；
+ * <p>保护规则：管理员权限账号（permission=0）不可停用、不可删除、不可修改账号名；
  * 停用账号无法登录前后台，已签发的 token 立即失效（AdminGuard 拦截）。</p>
  */
 @RestController
@@ -52,8 +51,6 @@ public class AdminUserController {
 
     @Autowired
     private UserEmotionMapper userEmotionMapper;
-
-    private final BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
 
     /** 账号列表：关键词（账号/昵称）/ 状态筛选 + 分页；绝不返回密码字段 */
     @GetMapping
@@ -87,7 +84,7 @@ public class AdminUserController {
         return Result.ok(PageResult.of(list, total, p, s));
     }
 
-    /** 新增账号（密码 BCrypt 加密入库） */
+    /** 新增账号（密码明文入库，权限为默认权限 permission=1） */
     @PostMapping
     public Result<Void> create(@RequestHeader(value = "Authorization", required = false) String auth,
                                @RequestBody Map<String, Object> body) {
@@ -115,9 +112,10 @@ public class AdminUserController {
 
         User user = new User();
         user.setUsername(username);
-        user.setPassword(encoder.encode(password));
+        user.setPassword(password); // 明文存储
         user.setNickname(nickname.isEmpty() ? username : nickname);
         user.setStatus(1);
+        user.setPermission(1); // 后台新增账号默认为普通权限
         user.setCreatedAt(LocalDateTime.now());
         userService.save(user);
         return Result.ok();
@@ -170,14 +168,14 @@ public class AdminUserController {
         if (status != 0 && status != 1) {
             return Result.fail("状态参数不正确");
         }
-        if (status == 0 && AdminGuard.ADMIN_USERNAME.equals(old.getUsername())) {
-            return Result.fail("内置管理员账号不允许停用");
+        if (status == 0 && isRoot(old)) {
+            return Result.fail("管理员权限账号不允许停用");
         }
         userService.lambdaUpdate().eq(User::getId, id).set(User::getStatus, status).update();
         return Result.ok();
     }
 
-    /** 重置密码（新密码 BCrypt 加密入库） */
+    /** 重置密码（新密码明文入库） */
     @PutMapping("/{id}/password")
     public Result<Void> resetPassword(@RequestHeader(value = "Authorization", required = false) String auth,
                                       @PathVariable("id") Long id,
@@ -196,12 +194,12 @@ public class AdminUserController {
         }
         User patch = new User();
         patch.setId(old.getId());
-        patch.setPassword(encoder.encode(password));
+        patch.setPassword(password); // 明文存储
         userService.updateById(patch);
         return Result.ok();
     }
 
-    /** 删除账号（admin 不允许删除；同时清理该用户的任务记录与情绪值） */
+    /** 删除账号（管理员账号不允许删除；同时清理该用户的任务记录与情绪值） */
     @DeleteMapping("/{id}")
     public Result<Void> delete(@RequestHeader(value = "Authorization", required = false) String auth,
                                @PathVariable("id") Long id) {
@@ -212,8 +210,8 @@ public class AdminUserController {
         if (old == null) {
             return Result.fail(404, "账号不存在，可能已被删除");
         }
-        if (AdminGuard.ADMIN_USERNAME.equals(old.getUsername())) {
-            return Result.fail("内置管理员账号不允许删除");
+        if (isRoot(old)) {
+            return Result.fail("管理员权限账号不允许删除");
         }
         // 关联数据一并清理（检索日志保留，仅作分析用途）
         taskRecordMapper.delete(Wrappers.lambdaQuery(TaskRecord.class).eq(TaskRecord::getUserId, id));
@@ -224,6 +222,11 @@ public class AdminUserController {
 
     // ------------------------------------------------------------------
 
+    /** 是否管理员权限账号（permission=0） */
+    private boolean isRoot(User u) {
+        return u.getPermission() != null && u.getPermission() == 0;
+    }
+
     /** 脱敏后的账号信息（不含密码） */
     private Map<String, Object> toMap(User u) {
         Map<String, Object> m = new LinkedHashMap<>();
@@ -231,8 +234,9 @@ public class AdminUserController {
         m.put("username", u.getUsername());
         m.put("nickname", u.getNickname());
         m.put("status", u.getStatus());
+        m.put("permission", u.getPermission());
         m.put("createdAt", u.getCreatedAt());
-        m.put("admin", AdminGuard.ADMIN_USERNAME.equals(u.getUsername()));
+        m.put("admin", isRoot(u));
         return m;
     }
 
