@@ -54,7 +54,10 @@
           <tr v-for="r in rows" v-else :key="r.id">
             <td>
               <div class="tsk-name">
-                <span class="tsk-glyph" :style="{ background: tint(r.color) }">{{ r.glyph || '🧵' }}</span>
+                <span class="tsk-glyph" :style="{ background: tint(r.color) }">
+                  <img v-if="r.icon" :src="r.icon" alt="" @error="$event.target.style.display = 'none'" />
+                  <template v-else>{{ r.glyph || '🧵' }}</template>
+                </span>
                 <div>
                   <b>{{ r.title }}</b>
                   <i>{{ r.subtitle || r.code }}</i>
@@ -121,6 +124,10 @@
                 <input v-model.trim="form.glyph" type="text" maxlength="8" placeholder="如：🎀">
               </label>
             </div>
+            <label>
+              <span>图标图片路径（填写后优先于 emoji 展示，如 /icons/task-rl-011.png）</span>
+              <input v-model.trim="form.icon" type="text" maxlength="255" placeholder="/icons/task-rl-011.png">
+            </label>
             <label>
               <span>副标题 / 一句话说明（不超过 128 字）</span>
               <input v-model.trim="form.subtitle" type="text" maxlength="128" placeholder="告示板卡片上的副标题">
@@ -279,7 +286,7 @@ const formError = ref('')
 const targetId = ref(null)
 const emptyForm = () => ({
   code: '', title: '', subtitle: '', description: '',
-  client: '', scene: '', glyph: '', difficulty: 1,
+  client: '', scene: '', glyph: '', icon: '', difficulty: 1,
   reward: 500, duration: '', tags: '', sortNo: 0, status: 1
 })
 const form = reactive(emptyForm())
@@ -300,6 +307,7 @@ function openEdit(r) {
     client: r.client || '',
     scene: r.scene || '',
     glyph: r.glyph || '',
+    icon: r.icon || '',
     difficulty: r.difficulty || 1,
     reward: r.reward ?? 0,
     duration: r.duration || '',
@@ -400,7 +408,9 @@ onMounted(load)
 .tsk-glyph{
   width:34px;height:34px;flex:none;border-radius:50%;display:grid;place-items:center;font-size:15px;
   border:1px solid rgba(255,217,160,.4);
+  overflow:hidden;
 }
+.tsk-glyph img{width:100%;height:100%;object-fit:cover;display:block}
 .tsk-diff{font-size:11.5px;padding:3px 10px;border-radius:999px;white-space:nowrap}
 .tsk-diff.d1{color:#8fe3b0;background:rgba(95,224,168,.12);border:1px solid rgba(95,224,168,.35)}
 .tsk-diff.d2{color:#ffd9a0;background:rgba(255,217,160,.12);border:1px solid rgba(255,217,160,.35)}

@@ -174,6 +174,7 @@ public class ShopServiceImpl extends ServiceImpl<ShopItemMapper, ShopItem> imple
             if (item != null) {
                 row.setName(item.getName());
                 row.setGlyph(item.getGlyph());
+                row.setIcon(item.getIcon());
                 row.setColor(item.getColor());
                 row.setCategoryText(Categories.textOf(item.getCategory()));
             } else {
@@ -194,6 +195,7 @@ public class ShopServiceImpl extends ServiceImpl<ShopItemMapper, ShopItem> imple
         card.setSubtitle(item.getSubtitle());
         card.setDescription(item.getDescription());
         card.setGlyph(item.getGlyph() == null || item.getGlyph().isEmpty() ? "🎁" : item.getGlyph());
+        card.setIcon(item.getIcon());
         card.setColor(item.getColor() == null || item.getColor().isEmpty() ? "#ff9eb5" : item.getColor());
         card.setPrice(nvl(item.getPrice()));
         card.setExpGain(nvl(item.getExpGain()));

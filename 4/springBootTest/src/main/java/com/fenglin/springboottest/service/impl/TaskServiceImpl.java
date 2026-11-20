@@ -237,6 +237,7 @@ public class TaskServiceImpl extends ServiceImpl<RedLineTaskMapper, RedLineTask>
         card.setDescription(task.getDescription());
         card.setClient(task.getClient());
         card.setGlyph(task.getGlyph() == null || task.getGlyph().isEmpty() ? "🧵" : task.getGlyph());
+        card.setIcon(task.getIcon());
         card.setColor(task.getColor() == null || task.getColor().isEmpty() ? "#ff9eb5" : task.getColor());
         card.setDifficulty(nvl(task.getDifficulty()));
         card.setDifficultyText(difficultyText(nvl(task.getDifficulty())));

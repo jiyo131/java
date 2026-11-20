@@ -1120,6 +1120,21 @@ body.modal-locked .home-shell{overflow:hidden}
 .my-task.is-doing{border-left:3px solid var(--pink)}
 .my-task.is-done{border-left:3px solid var(--gold);opacity:.92}
 .my-task-glyph{font-size:20px;line-height:1;filter:drop-shadow(0 0 8px rgba(255,92,122,.35))}
+/* 图标图片化（2026-11-20）：任务 / 商品图标支持图片，图片铺满圆形徽标框 */
+.task-glyph img,
+.shop-glyph img,
+.shop-mine-glyph img,
+.my-task-glyph img{
+  width:100%;height:100%;object-fit:cover;border-radius:inherit;display:block;
+}
+.shop-mine-glyph{overflow:hidden}
+.shop-glyph{overflow:hidden}
+.task-glyph{overflow:hidden}
+.my-task-glyph{
+  overflow:hidden;border-radius:12px;flex:0 0 38px;width:38px;height:38px;
+  background:color-mix(in srgb, var(--task-color,var(--pink)) 16%, transparent);
+  border:1px solid color-mix(in srgb, var(--task-color,var(--pink)) 40%, transparent);
+}
 .my-task-text{flex:1;min-width:0}
 .my-task-text b{display:block;font-size:13px;letter-spacing:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .my-task-text span{display:block;margin-top:2px;font-size:10.5px;letter-spacing:.5px;color:var(--muted)}

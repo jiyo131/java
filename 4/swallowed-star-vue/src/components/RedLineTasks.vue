@@ -82,7 +82,10 @@
         <span v-else-if="t.state === 'completed'" class="task-flag done">已圆满</span>
 
         <header class="task-top">
-          <span class="task-glyph" aria-hidden="true">{{ t.glyph }}</span>
+          <span class="task-glyph" aria-hidden="true">
+            <img v-if="t.icon" :src="t.icon" alt="" loading="lazy" @error="$event.target.style.display = 'none'" />
+            <template v-else>{{ t.glyph }}</template>
+          </span>
           <div class="task-title">
             <h4>{{ t.title }}</h4>
             <p>{{ t.subtitle }}</p>

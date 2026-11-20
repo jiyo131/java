@@ -37,6 +37,9 @@ public class CultivationOverview {
 
         private String glyph;
 
+        /** 商品图标图片路径，icon 为空时前端回退 glyph */
+        private String icon;
+
         private String color;
 
         /** 分类中文名：丹药 / 功法 */

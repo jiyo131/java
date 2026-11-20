@@ -92,6 +92,7 @@ CREATE TABLE IF NOT EXISTS star_redline_task (
   description VARCHAR(500) DEFAULT NULL            COMMENT '委托详情',
   client      VARCHAR(48)  DEFAULT NULL            COMMENT '委托方',
   glyph       VARCHAR(16)  DEFAULT NULL            COMMENT '任务图标（emoji）',
+  icon        VARCHAR(255) DEFAULT NULL            COMMENT '任务图标图片路径，icon 为空时回退 glyph',
   color       VARCHAR(16)  DEFAULT NULL            COMMENT '任务主色（#RRGGBB）',
   difficulty  TINYINT      NOT NULL DEFAULT 1      COMMENT '难度：1 轻缘 / 2 深缘 / 3 宿缘',
   reward      INT          NOT NULL DEFAULT 10     COMMENT '完成可得情绪值',
@@ -144,6 +145,7 @@ CREATE TABLE IF NOT EXISTS star_shop_item (
   subtitle    VARCHAR(128) DEFAULT NULL            COMMENT '副标题 / 一句话说明',
   description VARCHAR(500) DEFAULT NULL            COMMENT '商品详情',
   glyph       VARCHAR(16)  DEFAULT NULL            COMMENT '商品图标（emoji）',
+  icon        VARCHAR(255) DEFAULT NULL            COMMENT '商品图标图片路径，icon 为空时回退 glyph',
   color       VARCHAR(16)  DEFAULT NULL            COMMENT '商品主色（#RRGGBB），驱动前端卡片光效',
   price       INT          NOT NULL DEFAULT 10     COMMENT '兑换所需情绪值',
   exp_gain    INT          NOT NULL DEFAULT 0      COMMENT '服用/参悟可得修为（0 表示不可服用，如法宝）',
@@ -184,3 +186,28 @@ CREATE TABLE IF NOT EXISTS star_user_cultivation (
   updated_at        DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   PRIMARY KEY (user_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='红线仙修为（境界驱动）';
+
+-- 11) 图标图片化迁移（2026-11-20 新增，幂等） --------------------------------
+-- 为任务 / 商品表补 icon 图片列。已有该列时会报 Duplicate column 错误，
+-- 由 spring.sql.init.continue-on-error=true 忽略，因此可重复启动。
+ALTER TABLE star_redline_task
+  ADD COLUMN icon VARCHAR(255) DEFAULT NULL COMMENT '任务图标图片路径，icon 为空时回退 glyph' AFTER glyph;
+ALTER TABLE star_shop_item
+  ADD COLUMN icon VARCHAR(255) DEFAULT NULL COMMENT '商品图标图片路径，icon 为空时回退 glyph' AFTER glyph;
+
+-- 12) 涂山小游戏战绩（2026-11-20 新增） --------------------------------------
+-- 目前仅打地鼠（game_key='whack'）：每局结束结算一次情绪值，
+-- 服务端按本表统计当日局数做限次（每日 3 局），防刷上限在 GameService 校验。
+CREATE TABLE IF NOT EXISTS star_game_record (
+  id          BIGINT   NOT NULL AUTO_INCREMENT COMMENT '主键',
+  user_id     BIGINT   NOT NULL                COMMENT '用户 id',
+  game_key    VARCHAR(32) NOT NULL DEFAULT 'whack' COMMENT '游戏标识：whack 打地鼠',
+  score       INT      NOT NULL DEFAULT 0      COMMENT '本局得分',
+  hits        INT      NOT NULL DEFAULT 0      COMMENT '命中次数',
+  golden_hits INT      NOT NULL DEFAULT 0      COMMENT '金狐命中次数',
+  duration_ms INT      NOT NULL DEFAULT 0      COMMENT '本局时长（毫秒）',
+  reward      INT      NOT NULL DEFAULT 0      COMMENT '实得情绪值',
+  created_at  DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  PRIMARY KEY (id),
+  KEY idx_user_created (user_id, created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='涂山小游戏战绩';

@@ -172,6 +172,7 @@ public class CultivationServiceImpl extends ServiceImpl<UserCultivationMapper, U
             row.setItemId(item.getId());
             row.setName(item.getName());
             row.setGlyph(item.getGlyph() == null || item.getGlyph().isEmpty() ? "🎁" : item.getGlyph());
+            row.setIcon(item.getIcon());
             row.setColor(item.getColor() == null || item.getColor().isEmpty() ? "#ff9eb5" : item.getColor());
             row.setCategoryText(Categories.textOf(item.getCategory()));
             row.setExpGain(nvl(item.getExpGain()));

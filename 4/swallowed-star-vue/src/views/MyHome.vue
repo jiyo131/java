@@ -97,7 +97,10 @@
             class="cult-item"
             :style="{ '--task-color': u.color }"
           >
-            <span class="my-task-glyph">{{ u.glyph }}</span>
+            <span class="my-task-glyph">
+              <img v-if="u.icon" :src="u.icon" alt="" loading="lazy" @error="$event.target.style.display = 'none'" />
+              <template v-else>{{ u.glyph }}</template>
+            </span>
             <div class="my-task-text">
               <b>{{ u.name }}</b>
               <span>{{ u.categoryText }} · 兑于 {{ u.obtainedAt || '—' }} · 服用可得 +{{ u.expGain }} 修为</span>
@@ -205,7 +208,10 @@
               class="my-task is-doing"
               :style="{ '--task-color': t.color }"
             >
-              <span class="my-task-glyph">{{ t.glyph }}</span>
+              <span class="my-task-glyph">
+                <img v-if="t.icon" :src="t.icon" alt="" loading="lazy" @error="$event.target.style.display = 'none'" />
+                <template v-else>{{ t.glyph }}</template>
+              </span>
               <div class="my-task-text">
                 <b>{{ t.title }}</b>
                 <span>接取于 {{ t.acceptedAt || '—' }} · {{ t.difficultyText }} · 完成可得 +{{ t.reward }}</span>
@@ -223,7 +229,10 @@
               class="my-task is-done"
               :style="{ '--task-color': t.color }"
             >
-              <span class="my-task-glyph">{{ t.glyph }}</span>
+              <span class="my-task-glyph">
+                <img v-if="t.icon" :src="t.icon" alt="" loading="lazy" @error="$event.target.style.display = 'none'" />
+                <template v-else>{{ t.glyph }}</template>
+              </span>
               <div class="my-task-text">
                 <b>{{ t.title }}</b>
                 <span>圆满于 {{ t.completedAt || '—' }} · 收获情绪值 +{{ t.reward }}</span>
@@ -272,6 +281,7 @@ const navs = computed(() => {
   const taskNav = { key: 'tasks', label: '红线仙任务' }
   const meNav = { key: 'me', label: '我的主页' }
   const shopNav = { key: 'shop', label: '兑换商店' }
+  const gameNav = { key: 'game', label: '打地鼠' }
   categories.value.forEach((c, i) => {
     list.push({ key: String(c.id), label: c.name, count: c.count })
     if (i === 0) {
@@ -285,6 +295,7 @@ const navs = computed(() => {
     list.push(meNav)
   }
   list.push(shopNav)
+  list.push(gameNav)
   return list
 })
 
@@ -410,6 +421,10 @@ function onNav(n) {
   }
   if (n.key === 'shop') {
     router.push('/shop')
+    return
+  }
+  if (n.key === 'game') {
+    router.push('/game')
     return
   }
   router.push({ path: '/home', query: { cat: n.key } })

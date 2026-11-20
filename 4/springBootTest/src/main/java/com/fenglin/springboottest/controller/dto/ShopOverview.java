@@ -47,6 +47,8 @@ public class ShopOverview {
         private Long itemId;
         private String name;
         private String glyph;
+        /** 商品图标图片路径，icon 为空时前端回退 glyph */
+        private String icon;
         private String color;
         private String categoryText;
         private Integer price;

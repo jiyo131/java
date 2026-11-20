@@ -97,7 +97,10 @@
           :style="{ '--shop-color': it.color }"
         >
           <div class="shop-card-top">
-            <span class="shop-glyph" aria-hidden="true">{{ it.glyph }}</span>
+            <span class="shop-glyph" aria-hidden="true">
+              <img v-if="it.icon" :src="it.icon" alt="" loading="lazy" @error="$event.target.style.display = 'none'" />
+              <template v-else>{{ it.glyph }}</template>
+            </span>
             <em class="shop-cat">{{ it.categoryText }}</em>
           </div>
           <h4 class="shop-name">{{ it.name }}</h4>
@@ -146,7 +149,10 @@
             class="shop-mine-row"
             :style="{ '--shop-color': r.color }"
           >
-            <span class="shop-mine-glyph" aria-hidden="true">{{ r.glyph || '🎁' }}</span>
+            <span class="shop-mine-glyph" aria-hidden="true">
+              <img v-if="r.icon" :src="r.icon" alt="" loading="lazy" @error="$event.target.style.display = 'none'" />
+              <template v-else>{{ r.glyph || '🎁' }}</template>
+            </span>
             <div class="shop-mine-text">
               <b>{{ r.name }}</b>
               <span>{{ r.categoryText }} · 兑于 {{ r.createdAt }}</span>
@@ -190,12 +196,13 @@ let confirmTimer = null
 const categories = ref([])
 const stats = ref({ entryCount: 0, categoryCount: 0, viewCount: 0 })
 
-// 导航与首页 / 任务页 / 主页一致：全体档案 → 分类（首个分类后插任务、主页）→ 兑换商店
+// 导航与首页 / 任务页 / 主页一致：全体档案 → 分类（首个分类后插任务、主页）→ 兑换商店 → 打地鼠
 const navs = computed(() => {
   const list = [{ key: 'all', label: '全体档案', count: stats.value.entryCount }]
   const taskNav = { key: 'tasks', label: '红线仙任务' }
   const meNav = { key: 'me', label: '我的主页' }
   const shopNav = { key: 'shop', label: '兑换商店' }
+  const gameNav = { key: 'game', label: '打地鼠' }
   categories.value.forEach((c, i) => {
     list.push({ key: String(c.id), label: c.name, count: c.count })
     if (i === 0) {
@@ -209,6 +216,7 @@ const navs = computed(() => {
     list.push(meNav)
   }
   list.push(shopNav)
+  list.push(gameNav)
   return list
 })
 
@@ -291,6 +299,10 @@ function onNav(n) {
   }
   if (n.key === 'tasks') {
     router.push('/tasks')
+    return
+  }
+  if (n.key === 'game') {
+    router.push('/game')
     return
   }
   router.push({ path: '/home', query: { cat: n.key } })

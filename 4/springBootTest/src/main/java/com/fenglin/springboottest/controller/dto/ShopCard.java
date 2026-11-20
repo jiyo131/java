@@ -29,6 +29,9 @@ public class ShopCard {
 
     private String glyph;
 
+    /** 商品图标图片路径，icon 为空时前端回退 glyph */
+    private String icon;
+
     private String color;
 
     /** 兑换所需情绪值 */

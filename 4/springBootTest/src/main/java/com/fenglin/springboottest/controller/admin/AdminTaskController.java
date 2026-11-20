@@ -94,6 +94,7 @@ public class AdminTaskController {
             m.put("description", t.getDescription());
             m.put("client", t.getClient());
             m.put("glyph", t.getGlyph());
+            m.put("icon", t.getIcon());
             m.put("color", t.getColor());
             m.put("difficulty", t.getDifficulty());
             m.put("reward", t.getReward());
@@ -246,6 +247,9 @@ public class AdminTaskController {
         }
         if (t.getGlyph() != null && t.getGlyph().length() > 16) {
             return "任务图标不超过 16 字";
+        }
+        if (t.getIcon() != null && t.getIcon().length() > 255) {
+            return "任务图标图片路径不超过 255 字";
         }
         if (t.getColor() != null && t.getColor().length() > 16) {
             return "任务主色不超过 16 字";

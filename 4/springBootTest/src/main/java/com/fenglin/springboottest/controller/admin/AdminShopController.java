@@ -243,6 +243,7 @@ public class AdminShopController {
             m.put("itemId", r.getItemId());
             m.put("itemName", item == null ? "已删除商品" : item.getName());
             m.put("itemGlyph", item == null ? "🎁" : item.getGlyph());
+            m.put("itemIcon", item == null ? null : item.getIcon());
             m.put("itemCategory", item == null ? null : item.getCategory());
             m.put("price", r.getPrice());
             m.put("used", r.getUsed());
@@ -263,6 +264,7 @@ public class AdminShopController {
         m.put("subtitle", i.getSubtitle());
         m.put("description", i.getDescription());
         m.put("glyph", i.getGlyph());
+        m.put("icon", i.getIcon());
         m.put("color", i.getColor());
         m.put("price", i.getPrice());
         m.put("expGain", i.getExpGain());
@@ -324,6 +326,9 @@ public class AdminShopController {
         }
         if (i.getGlyph() != null && i.getGlyph().length() > 16) {
             return "商品图标不超过 16 字";
+        }
+        if (i.getIcon() != null && i.getIcon().length() > 255) {
+            return "商品图标图片路径不超过 255 字";
         }
         if (i.getColor() != null && i.getColor().length() > 16) {
             return "商品主色不超过 16 字";

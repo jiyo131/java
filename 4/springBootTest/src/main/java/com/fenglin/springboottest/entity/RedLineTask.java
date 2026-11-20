@@ -35,6 +35,9 @@ public class RedLineTask {
     /** 任务图标（emoji） */
     private String glyph;
 
+    /** 任务图标图片路径（如 /icons/task-rl-001.png），icon 为空时前端回退 glyph */
+    private String icon;
+
     /** 任务主色（#RRGGBB），驱动前端卡片光效 */
     private String color;
 

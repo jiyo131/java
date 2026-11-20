@@ -64,7 +64,10 @@
             <tr v-for="r in items" v-else :key="r.id">
               <td>
                 <div class="shp-name">
-                  <span class="shp-glyph" :style="{ background: tint(r.color) }">{{ r.glyph || '🎁' }}</span>
+                  <span class="shp-glyph" :style="{ background: tint(r.color) }">
+                    <img v-if="r.icon" :src="r.icon" alt="" @error="$event.target.style.display = 'none'" />
+                    <template v-else>{{ r.glyph || '🎁' }}</template>
+                  </span>
                   <div>
                     <b>{{ r.name }}</b>
                     <i>{{ r.subtitle || r.code }}</i>
@@ -144,7 +147,10 @@
               <td class="who">{{ r.username }}</td>
               <td>
                 <div class="shp-name slim">
-                  <span class="shp-glyph sm">{{ r.itemGlyph || '🎁' }}</span>
+                  <span class="shp-glyph sm">
+                    <img v-if="r.itemIcon" :src="r.itemIcon" alt="" @error="$event.target.style.display = 'none'" />
+                    <template v-else>{{ r.itemGlyph || '🎁' }}</template>
+                  </span>
                   <b>{{ r.itemName }}</b>
                 </div>
               </td>
@@ -197,6 +203,10 @@
                 <input v-model.trim="form.glyph" type="text" maxlength="8" placeholder="如：🧪">
               </label>
             </div>
+            <label>
+              <span>图标图片路径（填写后优先于 emoji 展示，如 /icons/shop-fb-05.png）</span>
+              <input v-model.trim="form.icon" type="text" maxlength="255" placeholder="/icons/shop-fb-05.png">
+            </label>
             <div class="row2">
               <label>
                 <span>分类 *</span>
@@ -368,7 +378,7 @@ const formError = ref('')
 const targetId = ref(null)
 const emptyForm = () => ({
   code: '', category: 'fabao', name: '', subtitle: '', description: '',
-  glyph: '', color: '', price: 60, expGain: 0, stock: -1,
+  glyph: '', icon: '', color: '', price: 60, expGain: 0, stock: -1,
   tags: '', sortNo: 0, status: 1
 })
 const form = reactive(emptyForm())
@@ -388,6 +398,7 @@ function openEdit(r) {
     subtitle: r.subtitle || '',
     description: r.description || '',
     glyph: r.glyph || '',
+    icon: r.icon || '',
     color: r.color || '',
     price: r.price ?? 0,
     expGain: r.expGain ?? 0,
@@ -553,7 +564,9 @@ onMounted(loadItems)
 .shp-glyph{
   width:34px;height:34px;flex:none;border-radius:50%;display:grid;place-items:center;font-size:15px;
   border:1px solid rgba(255,217,160,.4);
+  overflow:hidden;
 }
+.shp-glyph img{width:100%;height:100%;object-fit:cover;display:block}
 .shp-glyph.sm{width:28px;height:28px;font-size:13px}
 .shp-cat{font-size:11.5px;padding:3px 10px;border-radius:999px;white-space:nowrap}
 .shp-cat.fabao{color:#ffd9a0;background:rgba(255,217,160,.12);border:1px solid rgba(255,217,160,.35)}

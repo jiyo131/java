@@ -5,6 +5,7 @@ import Home from '../views/Home.vue'
 import RedLineTaskPage from '../views/RedLineTaskPage.vue'
 import MyHome from '../views/MyHome.vue'
 import ShopPage from '../views/ShopPage.vue'
+import GamePage from '../views/GamePage.vue'
 import AdminLogin from '../views/AdminLogin.vue'
 import AdminLayout from '../views/admin/AdminLayout.vue'
 import AdminEntries from '../views/admin/AdminEntries.vue'
@@ -28,6 +29,8 @@ const routes = [
   { path: '/me', name: 'me', component: MyHome, meta: { title: '我的主页 · 涂山红线仙' } },
   // 兑换商店：导航入口排在「我的主页」之后（法宝 / 丹药 / 功法，以情绪值为通货）
   { path: '/shop', name: 'shop', component: ShopPage, meta: { title: '兑换商店 · 涂山小铺' } },
+  // 打地鼠小游戏：导航入口排在「兑换商店」之后（拍小狐妖赚情绪值）
+  { path: '/game', name: 'game', component: GamePage, meta: { title: '打地鼠 · 涂山小妖出没' } },
   // ===== 后台管理（独立登录态，仅登录、无注册） =====
   { path: '/admin/login', name: 'admin-login', component: AdminLogin, meta: { title: '后台管理系统 · 登录' } },
   {
@@ -66,7 +69,7 @@ router.beforeEach((to) => {
     return adminLogged ? undefined : '/admin/login'
   }
 
-  if ((to.path === '/home' || to.path === '/tasks' || to.path === '/me' || to.path === '/shop') && !logged) {
+  if ((to.path === '/home' || to.path === '/tasks' || to.path === '/me' || to.path === '/shop' || to.path === '/game') && !logged) {
     return '/login'
   }
   if ((to.path === '/login' || to.path === '/') && logged) {

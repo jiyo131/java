@@ -25,6 +25,9 @@ public class TaskCard {
 
     private String glyph;
 
+    /** 任务图标图片路径，icon 为空时前端回退 glyph */
+    private String icon;
+
     /** 任务主色，前端用于卡片光效 */
     private String color;
 

@@ -42,6 +42,9 @@ public class ShopItem {
     /** 商品图标（emoji） */
     private String glyph;
 
+    /** 商品图标图片路径（如 /icons/shop-fb-01.png），icon 为空时前端回退 glyph */
+    private String icon;
+
     /** 商品主色（#RRGGBB） */
     private String color;
 

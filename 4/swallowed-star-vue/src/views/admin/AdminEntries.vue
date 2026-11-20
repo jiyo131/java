@@ -53,7 +53,10 @@
           <tr v-for="r in rows" v-else :key="r.id">
             <td>
               <div class="ent-name">
-                <span class="ent-glyph">{{ r.glyph || '🦊' }}</span>
+                <span class="ent-glyph">
+                  <img v-if="r.avatar && !r.avatarFailed" :src="r.avatar" :alt="r.name" @error="r.avatarFailed = true">
+                  <template v-else>{{ r.glyph || '🦊' }}</template>
+                </span>
                 <div>
                   <b>{{ r.name }}</b>
                   <i v-if="r.alias">{{ r.alias }}</i>
@@ -112,10 +115,14 @@
                 <option v-for="c in categoryOptions" :key="c.id" :value="c.id">{{ c.label }}</option>
               </select>
             </label>
-            <div class="ent-grid2">
+            <div class="ent-grid3">
               <label>
                 <span>卡片图标</span>
                 <input v-model.trim="form.glyph" type="text" maxlength="16" placeholder="emoji，如 🦊">
+              </label>
+              <label>
+                <span>人物形象图路径</span>
+                <input v-model.trim="form.avatar" type="text" maxlength="255" placeholder="如 /avatars/tushan-susu.jpg">
               </label>
               <label>
                 <span>所属势力</span>
@@ -225,7 +232,7 @@ async function load() {
       page: page.value,
       size: 10
     })
-    rows.value = data.list || []
+    rows.value = (data.list || []).map(r => ({ ...r, avatarFailed: false }))
     total.value = data.total || 0
     pages.value = data.pages || 1
   } catch (e) {
@@ -412,8 +419,9 @@ onMounted(() => {
 }
 .ent-glyph{
   width:34px;height:34px;flex:none;border-radius:50%;display:grid;place-items:center;font-size:16px;
-  background:rgba(255,158,181,.14);border:1px solid var(--panel-line);
+  background:rgba(255,158,181,.14);border:1px solid var(--panel-line);overflow:hidden;
 }
+.ent-glyph img{width:100%;height:100%;object-fit:cover;display:block}
 .ent-cat{
   font-size:11.5px;color:var(--pink);padding:3px 9px;border-radius:999px;
   background:rgba(255,158,181,.12);white-space:nowrap;
