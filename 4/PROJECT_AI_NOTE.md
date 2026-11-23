@@ -383,3 +383,88 @@ navs computed 末尾统一 push `{ key:'shop', label:'兑换商店' }`，TopNav 
   完成 RL-001 到账 +500（125→625），测试痕迹已复原（admin 回到 125 / 记录删除）。
 - 教训：data.sql 批量改值时正则分组计数错位曾把 `12, '当日可成'` 拼坏成 `50012当日可成'`，
   已按「新奖励+旧奖励+时长」形态逐行修复并复核 10 行三元组完整。
+
+## 20. 我的主页「红线挚友」好友系统（2026-11-23 开发并全链路验证）
+在「我的主页」（MyHome.vue /me）末尾新增好友卡片「红线挚友」：搜索用户结缘 / 收到申请（同意/婉拒）/
+发出的申请（撤回）/ 好友列表（阵营·境界·修为·情绪值·结缘时间，绝交两段确认）。
+
+- 数据库（schema.sql §13-14，新表由 spring.sql.init 自动建，无 data.sql 种子）：
+  `star_friend`（双向两行：(A,B) 与 (B,A) 各存一条，查好友只扫 user_id；uk (user_id,friend_id)）；
+  `star_friend_request`（同方向唯一 uk (from_user_id,to_user_id)；status 1 待处理/2 已同意/3 已拒绝；
+  被拒后可再次发起=复用原记录改回待处理；撤回=物理删除）。star_page_init.sql 已用 build_page_init.py 同步。
+- 后端：`FriendController /api/friends`（全登录态，401 走 Result.fail(401)）：
+  GET 面板（friends/incoming/outgoing/friendCount）、GET `/search?keyword=`（账号/昵称模糊、status=1、
+  排除自己、LIMIT 10，行带 relation none/friend/outgoing/incoming + 阵营/境界）、
+  POST `/{targetUserId}/request`（body 可带 message ≤128；重复/已是好友/给自己/反方向待处理各有文案）、
+  POST `/request/{id}/accept`（事务+防重，落双向好友两行）、`/reject`、`/cancel`、DELETE `/{friendUserId}`（双向删）。
+  `FriendServiceImpl` 展示数据实时联表 star_user/star_user_emotion/star_user_cultivation，
+  境界名复用 RealmLadder（camp=2 走妖族线）；接受申请时 insertFriendPair 带 selectCount+唯一键双重防重。
+  DTO：FriendOverview（内部类 FriendCard/RequestCard）。用户已被物理删除的好友行在 overview 里跳过展示。
+- 前端：`src/api/friends.js` 七个封装；MyHome.vue 新增 `<section id="friend-card">`：
+  搜索框（回车/按钮，结果行带「+ 结缘 / 已是挚友 / 待对方回应 / 去同意」状态）、收到申请（同意/婉拒）、
+  发出的申请（撤回）、挚友列表（绝交按钮两段确认 4s 收回，仿任务页）；动作成功后 toast + 就地更新
+  relation，失败时以服务端 overview 重新对齐。样式在 style.css `.fr-*`（fr-search/fr-input/fr-btn/
+  fr-tip/fr-state/fr-avatar/fr-actions，`my-task-btn` 增 is-ghost/is-danger/arm 变体；≤760px 响应式换行）。
+- 已验证（curl 全链路 34/34 PASS，脚本 `springBootTest/log/friend_verify.py`）：搜索（命中/排除自己/
+  昵称/空词/无命中）、发申请（成功/重复 400/给自己 400/不存在 400/反方向提示）、同意（第三人代处理 400/
+  接收人撤回他人 400/成功/重复同意 400/已是好友 400）、婉拒→复用记录再申请→撤回→撤回不存在 400、
+  绝交（双向同步/重复 400/绝交后可再申请）、无 token 401、relation 四态。
+  `npm run lint`(0 error)/`build`、`mvn -DskipTests package` 通过（先停 8081 java）。
+- 测试数据已复位：star_friend / star_friend_request 清空，frtest01 / frtest02 测试账号已删除。
+- 演示提示：单 admin 账号看不到好友互动效果，注册第二个账号登录后互相搜索账号即可玩全程。
+
+## 21. 「涂山拍卖行」（2026-11-23 开发并全链路验证）
+独立页面 `src/views/AuctionPage.vue`，路由 `/auction`（登录守卫内，标题「拍卖行 · 涂山拍卖行」）。
+导航入口排在「打地鼠」之后，六个页面（Home / RedLineTaskPage / MyHome / ShopPage / GamePage / AuctionPage）
+的 navs computed 末尾统一 push `{ key:'auction', label:'拍卖行' }`，TopNav 图标 🔨。
+
+- **玩法**：情绪值为竞价货币的轮转拍卖行。出价即扣情绪值、被超越全额退款（领先者永远「押着」最高出价）；
+  首价 ≥ 底价，此后 ≥ 当前价+加价幅度；结拍时领先者成交、无人出价流拍，随后**自动开下一场**（永不断档）；
+  一口价立即成交并立刻开下一场；**防狙击**：结拍前 60 秒内出价，结拍钟自动顺延 60 秒。
+- 数据库（schema.sql §15-17，data.sql 种 6 件拍品，end_time 用 NOW()+INTERVAL 起拍）：
+  `star_auction_lot`（模板 + runtime 三字段 current_price/leader_user_id/end_time）、
+  `star_auction_bid`（出价流水，只增不改）、`star_auction_deal`（成交/流拍留档，1 竞价/2 一口价/3 流拍，
+  名称/图标/主色为快照，轮转复用 lot 行）。star_page_init.sql 已用 build_page_init.py 同步（现 16 张表）。
+- 后端：`AuctionController /api/auction`（全登录态 401 同 Task 约定）：GET 面板（拍品+成交纪录 20 条+
+  我的夺宝+统计 emotion/leadingCount/wonCount/bidCount+serverTime）、GET `/{id}/bids`（单拍品出价记录 30 条）、
+  POST `/{id}/bid`（synchronized+事务）、POST `/{id}/buyout`。`AuctionServiceImpl` **懒结算**：任何入口先
+  settleExpiredLots（成交/流拍→落 deal→relist 开下一场）；relist 用 **LambdaUpdateWrapper 显式 set null**
+  ——updateById 跳过 null 字段，leader 清不掉（本次踩坑已修）。我已领先时再出价只补差价。
+- 前端：`api/auction.js` 4 个封装；AuctionPage = 面包屑 → 拍卖行招牌（情绪钱袋+领先/夺宝/出价统计）→
+  拍品卡网格（当前价、领先者徽标/「由我领先」金框、倒计时 mm:ss 按 serverTime 对表每秒跳、剩 60s 变红闪烁、
+  出价输入框+举牌（留空按最低出价）、一口价两段确认 4s、出价记录点开展开）→ 我的夺宝 → 槌声回响纪录区；
+  每 20s 静默刷新看板接收结拍结果。样式 style.css `.au-*`（≤760px 单列）。
+- 已验证（curl 全链路 **35/35 PASS**，脚本 `springBootTest/log/auction_verify.py`，含 mysql 拨表模拟
+  结拍到点/防狙击窗口）：出价扣款/自我加价补差价/被超越全额退款/加价幅度/流拍与竞价成交结算/一口价
+  （含余额不足 400）/轮转重开/防狙击顺延 60s/到点场次先结算再按新场出价/出价记录 mine 标记/无 token 401。
+  lint 0 error；`vite build --emptyOutDir false` 编译通过（**dist 整目录清空被用户安全策略拦下，
+  以后构建检查用 --emptyOutDir false 或跳过**）；`mvn -DskipTests package` 通过（先停 8081 java）。
+- 测试痕迹已复位：star_auction_bid/deal 清空、拍品 runtime 复位（底价+无人领先+按 duration 重新起拍）、
+  auctest01/02 测试账号及任务记录已删（user 表剩 admin 与用户自建的 skg）。
+- 踩坑备忘：① MyBatis-Plus updateById 不写 null 字段 → 清空 leader 必须用 UpdateWrapper.set(...null)；
+  ② 任务卡 state 是字符串 'available' 不是数字；③ /auth 接口不返回用户 id（同好友系统，测试脚本用搜索换 id）。
+
+### 21.1 后台「拍卖管理」页签（2026-11-23 追加开发并全链路验证）
+延续任务/商店管理模式，后台新增第六个页签 `/admin/auction`（AdminLayout 页签 + 概览新增
+「🔨 拍品总数 / ⚔️ 在拍拍品」两张统计卡，AdminOverviewController 概览新增 auctionTotal/auctionOnline）。
+
+- 后端：`AdminAuctionController /api/admin/auction`（全部先过 AdminGuard）：
+  `/lots` GET 列表（keyword 含名称/编码/副标题/标签、status 筛选，含下架数据，分页，行带
+  leaderName/bidCount/endAt）、POST `/lots` 新增（以底价立即起拍，runtime 自动填充）、
+  PUT `/lots/{id}` 编辑（**编辑不影响当前场次**——底价/时长自下一场起生效，runtime 三字段不动）、
+  PUT `/lots/{id}/status` 上下架（**重新上架时若场次已过期自动重开一场**，避免一上架就被结算成流拍留痕）、
+  DELETE `/lots/{id}`（**已有出价或成交/流拍留档时拒绝删除**，提示改下架）、
+  `/records` GET 成交纪录（dealType 1/2/3、lotId 筛选，倒序分页，行带 winnerName）。
+  校验：编码必填唯一（字母/数字/_/-）、名称必填 ≤64、底价 ≥1、幅度 ≥1、一口价 ≥0 且 ≥ 底价、
+  场次时长 5-1440 分钟、各字段长度。
+- 前端：`views/admin/AdminAuction.vue`（复用 AdminShop 的 .shp-* 结构，scoped 重复声明）：
+  页内双页签「拍品管理 / 成交纪录」；拍品表格（拍品/底价幅度/一口价/时长/当前价+领先者+结拍时间/
+  出价笔数/状态/操作）+ 新增编辑弹窗（编辑态编码禁改 + 「编辑不影响当前场次」提示）；
+  纪录表格（类型徽章 竞价成交/一口价/流拍、成交价、得主、时间）。admin.js 加 6 个接口封装；
+  router 加 admin-auction 路由。
+- 已验证（curl 25/25 PASS，脚本 `log/admin_auction_verify.py`）：前台 token/无 token 401、列表与筛选、
+  新增（底价起拍/重复编码/底价 0/幅度 0/一口价低于底价/时长越界/非法编码均拒绝）、编辑生效且不动 runtime、
+  下架后前台不出现、过期重上架自动重开、成交留档与类型筛选、删除保护（有留档拒绝/无留档可删）、概览统计。
+  lint 0 error、vite build --emptyOutDir false 通过、mvn package 通过（先停 8081 java）。
+- 测试痕迹已复位：AU-TEST-* 拍品及其出价/成交留档删除、auctest01 账号及任务/情绪记录删除（剩 admin、skg）。
+- 脚本坑（再犯提醒）：① 测试脚本 BASE 已含 /api，路径别再写 /api/admin/...；② 中文 query 必须 quote。

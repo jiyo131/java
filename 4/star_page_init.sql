@@ -105,7 +105,7 @@ CREATE TABLE IF NOT EXISTS star_redline_task (
   description VARCHAR(500) DEFAULT NULL            COMMENT '委托详情',
   client      VARCHAR(48)  DEFAULT NULL            COMMENT '委托方',
   glyph       VARCHAR(16)  DEFAULT NULL            COMMENT '任务图标（emoji）',
-  icon        VARCHAR(255)  DEFAULT NULL            COMMENT '任务图标图片路径，icon 为空时回退 glyph',
+  icon        VARCHAR(255) DEFAULT NULL            COMMENT '任务图标图片路径，icon 为空时回退 glyph',
   color       VARCHAR(16)  DEFAULT NULL            COMMENT '任务主色（#RRGGBB）',
   difficulty  TINYINT      NOT NULL DEFAULT 1      COMMENT '难度：1 轻缘 / 2 深缘 / 3 宿缘',
   reward      INT          NOT NULL DEFAULT 10     COMMENT '完成可得情绪值',
@@ -158,7 +158,7 @@ CREATE TABLE IF NOT EXISTS star_shop_item (
   subtitle    VARCHAR(128) DEFAULT NULL            COMMENT '副标题 / 一句话说明',
   description VARCHAR(500) DEFAULT NULL            COMMENT '商品详情',
   glyph       VARCHAR(16)  DEFAULT NULL            COMMENT '商品图标（emoji）',
-  icon        VARCHAR(255)  DEFAULT NULL            COMMENT '商品图标图片路径，icon 为空时回退 glyph',
+  icon        VARCHAR(255) DEFAULT NULL            COMMENT '商品图标图片路径，icon 为空时回退 glyph',
   color       VARCHAR(16)  DEFAULT NULL            COMMENT '商品主色（#RRGGBB），驱动前端卡片光效',
   price       INT          NOT NULL DEFAULT 10     COMMENT '兑换所需情绪值',
   exp_gain    INT          NOT NULL DEFAULT 0      COMMENT '服用/参悟可得修为（0 表示不可服用，如法宝）',
@@ -200,9 +200,17 @@ CREATE TABLE IF NOT EXISTS star_user_cultivation (
   PRIMARY KEY (user_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='红线仙修为（境界驱动）';
 
--- 11) 涂山小游戏战绩（2026-11-20 新增） --------------------------------------
+-- 11) 图标图片化迁移（2026-11-20 新增，幂等） --------------------------------
+-- 为任务 / 商品表补 icon 图片列。已有该列时会报 Duplicate column 错误，
+-- 由 spring.sql.init.continue-on-error=true 忽略，因此可重复启动。
+ALTER TABLE star_redline_task
+  ADD COLUMN icon VARCHAR(255) DEFAULT NULL COMMENT '任务图标图片路径，icon 为空时回退 glyph' AFTER glyph;
+ALTER TABLE star_shop_item
+  ADD COLUMN icon VARCHAR(255) DEFAULT NULL COMMENT '商品图标图片路径，icon 为空时回退 glyph' AFTER glyph;
+
+-- 12) 涂山小游戏战绩（2026-11-20 新增） --------------------------------------
 -- 目前仅打地鼠（game_key='whack'）：每局结束结算一次情绪值，
--- 服务端按本表统计当日局数做限次（每日 3 局），防刷上限在 GameServiceImpl 校验。
+-- 服务端按本表统计当日局数做限次（每日 3 局），防刷上限在 GameService 校验。
 CREATE TABLE IF NOT EXISTS star_game_record (
   id          BIGINT   NOT NULL AUTO_INCREMENT COMMENT '主键',
   user_id     BIGINT   NOT NULL                COMMENT '用户 id',
@@ -216,6 +224,98 @@ CREATE TABLE IF NOT EXISTS star_game_record (
   PRIMARY KEY (id),
   KEY idx_user_created (user_id, created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='涂山小游戏战绩';
+
+-- 13) 好友关系（2026-11-23 新增，我的主页·红线挚友） -------------------------
+-- 双向存储：A 与 B 成为好友时写 (A,B) 与 (B,A) 两行，查「我的好友」只扫 user_id。
+CREATE TABLE IF NOT EXISTS star_friend (
+  id         BIGINT   NOT NULL AUTO_INCREMENT COMMENT '主键',
+  user_id    BIGINT   NOT NULL                COMMENT '归属用户 id',
+  friend_id  BIGINT   NOT NULL                COMMENT '好友用户 id',
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '结缘时间',
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_user_friend (user_id, friend_id),
+  KEY idx_friend_of (friend_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='红线挚友（好友关系，双向两行）';
+
+-- 14) 好友申请 ---------------------------------------------------------------
+-- 同一方向的申请只有一条记录（uk_req）：同意后落 star_friend 两行并把 status 置 2；
+-- 拒绝把 status 置 3、撤回删除记录，被拒后可再次发起（复用原记录改回待处理）。
+CREATE TABLE IF NOT EXISTS star_friend_request (
+  id           BIGINT       NOT NULL AUTO_INCREMENT COMMENT '主键',
+  from_user_id BIGINT       NOT NULL                COMMENT '发起人 id',
+  to_user_id   BIGINT       NOT NULL                COMMENT '接收人 id',
+  message      VARCHAR(128) DEFAULT NULL            COMMENT '申请留言',
+  status       TINYINT      NOT NULL DEFAULT 1      COMMENT '1 待处理 / 2 已同意 / 3 已拒绝',
+  created_at   DATETIME     DEFAULT CURRENT_TIMESTAMP COMMENT '发起时间',
+  handled_at   DATETIME     DEFAULT NULL            COMMENT '处理时间（同意/拒绝）',
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_req (from_user_id, to_user_id),
+  KEY idx_req_to (to_user_id, status),
+  KEY idx_req_from (from_user_id, status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='好友申请';
+
+-- 15) 涂山拍卖行 · 拍品（2026-11-23 新增，独立页面 /auction，导航在「打地鼠」之后） ----
+-- 拍品即模板：base_price 底价 / step 加价幅度 / buyout_price 一口价（0 = 无一口价）/
+-- duration_min 每场时长（分钟）。runtime 三字段是当前场次状态：current_price 当前价
+-- （首价 = 底价，此后每次 ≥ 当前价 + step）、leader_user_id 当前领先者、end_time 结拍时间。
+-- 结拍（end_time <= now）懒结算：有领先者 → 竞价成交落 star_auction_deal；无人出价 → 流拍；
+-- 结算后立刻开下一场（current_price=base_price，leader 清空，end_time=now+duration_min），永不断档。
+CREATE TABLE IF NOT EXISTS star_auction_lot (
+  id            BIGINT       NOT NULL AUTO_INCREMENT COMMENT '主键',
+  code          VARCHAR(48)  NOT NULL                COMMENT '拍品编码（唯一，便于脚本引用）',
+  name          VARCHAR(64)  NOT NULL                COMMENT '拍品名称',
+  subtitle      VARCHAR(128) DEFAULT NULL            COMMENT '副标题 / 一句话说明',
+  description   VARCHAR(500) DEFAULT NULL            COMMENT '拍品详情',
+  glyph         VARCHAR(16)  DEFAULT NULL            COMMENT '拍品图标（emoji）',
+  icon          VARCHAR(255) DEFAULT NULL            COMMENT '拍品图标图片路径，icon 为空时回退 glyph',
+  color         VARCHAR(16)  DEFAULT NULL            COMMENT '拍品主色（#RRGGBB），驱动前端卡片光效',
+  base_price    INT          NOT NULL DEFAULT 10     COMMENT '底价（首拍最低出价）',
+  step          INT          NOT NULL DEFAULT 10     COMMENT '加价幅度（每次出价至少 +step）',
+  buyout_price  INT          NOT NULL DEFAULT 0      COMMENT '一口价（0 = 不设一口价）',
+  duration_min  INT          NOT NULL DEFAULT 60     COMMENT '每场拍卖时长（分钟）',
+  tags          VARCHAR(255) DEFAULT NULL            COMMENT '关键词标签，英文逗号分隔',
+  sort_no       INT          NOT NULL DEFAULT 0      COMMENT '排序（小值优先）',
+  status        TINYINT      NOT NULL DEFAULT 1      COMMENT '状态：1 上架 / 0 下架',
+  current_price INT          NOT NULL DEFAULT 0      COMMENT '当前场次最高价（开拍时重置为底价）',
+  leader_user_id BIGINT      DEFAULT NULL            COMMENT '当前领先者用户 id（无人出价为 NULL）',
+  end_time      DATETIME     DEFAULT NULL            COMMENT '当前场次结拍时间',
+  created_at    DATETIME     DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_lot_code (code),
+  KEY idx_lot_status (status, sort_no),
+  KEY idx_lot_end (end_time)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='涂山拍卖行拍品（模板+当前场次状态）';
+
+-- 16) 拍卖出价流水 -----------------------------------------------------------
+-- 只增不改：每次有效出价落一条（出价即扣情绪值，被超越全额退款，退款不落此表）。
+CREATE TABLE IF NOT EXISTS star_auction_bid (
+  id         BIGINT   NOT NULL AUTO_INCREMENT COMMENT '主键',
+  lot_id     BIGINT   NOT NULL                COMMENT '拍品 id',
+  user_id    BIGINT   NOT NULL                COMMENT '出价人 id',
+  amount     INT      NOT NULL DEFAULT 0      COMMENT '出价（情绪值）',
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '出价时间',
+  PRIMARY KEY (id),
+  KEY idx_bid_lot (lot_id, created_at),
+  KEY idx_bid_user (user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='拍卖行出价流水';
+
+-- 17) 拍卖成交 / 流拍留档 ------------------------------------------------------
+-- 只增不改：结拍懒结算或一口价成交时落一条。deal_type：1 竞价成交 / 2 一口价 / 3 流拍。
+-- 「我的夺宝」= winner_user_id = 我的 1/2 记录；流拍仅作行史，winner 为 NULL。
+CREATE TABLE IF NOT EXISTS star_auction_deal (
+  id            BIGINT      NOT NULL AUTO_INCREMENT COMMENT '主键',
+  lot_id        BIGINT      NOT NULL                COMMENT '拍品 id',
+  name          VARCHAR(64) NOT NULL                COMMENT '拍品名称快照（轮转重开后 lot 行会复用）',
+  glyph         VARCHAR(16) DEFAULT NULL            COMMENT '拍品图标快照',
+  color         VARCHAR(16) DEFAULT NULL            COMMENT '拍品主色快照',
+  price         INT         NOT NULL DEFAULT 0      COMMENT '成交价（流拍为 0）',
+  deal_type     TINYINT     NOT NULL DEFAULT 1      COMMENT '1 竞价成交 / 2 一口价 / 3 流拍',
+  winner_user_id BIGINT     DEFAULT NULL            COMMENT '得主用户 id（流拍为 NULL）',
+  created_at    DATETIME    DEFAULT CURRENT_TIMESTAMP COMMENT '成交 / 流拍时间',
+  PRIMARY KEY (id),
+  KEY idx_deal_winner (winner_user_id),
+  KEY idx_deal_created (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='拍卖行成交/流拍留档';
 
 -- ============================================================================
 -- 涂山人物志 · 首页种子数据
@@ -425,6 +525,31 @@ INSERT IGNORE INTO star_shop_item
 
 (12, 'SHOP-GF-04', 'gongfa', '纯爱天成（残卷）', '东方灵血激发的至高神通', '记载着「灭妖神火·纯爱天成」起手式的残卷，缺了后一半。缺的部分要靠自己的故事补全——这很狐妖。',
  '📕', '/icons/shop-gf-04.png', '#ff9eb5', 480, 80, 3, '纯爱天成,神火,残卷', 40, 1);
+
+-- ============================================================================
+-- 涂山拍卖行拍品（2026-11-23 新增，独立页面 /auction）
+-- 拍品即模板，INSERT IGNORE 幂等；runtime 状态（current_price / leader / end_time）
+-- 由 AuctionService 懒结算 + 轮转开拍维护，种子 end_time 过期也无妨（结算后自动开新场）。
+-- ============================================================================
+INSERT IGNORE INTO star_auction_lot
+(id, code, name, subtitle, description, glyph, icon, color, base_price, step, buyout_price, duration_min, tags, sort_no, status, current_price, leader_user_id, end_time) VALUES
+(1, 'AU-LOT-01', '苦情巨树的一缕情丝', '苦情树亲赐 · 万中挑一', '每整点由雅雅亲手从苦情巨树上摘下一缕最亮的情丝，装在琉璃匣里。传说握着它入睡，能梦见红线另一端的人此刻在做的事。',
+ '🪢', NULL, '#ff9eb5', 60, 10, 300, 30, '情丝,苦情树,雅雅', 10, 1, 60, NULL, NOW() + INTERVAL 30 MINUTE),
+
+(2, 'AU-LOT-02', '涂山苏苏的兔耳发饰（复刻版）', '三小姐同款 · 呆萌加倍', '苏苏那对毛耳朵的官方复刻发饰，戴上后连语气都会不自觉软三分。容容监修，每场拍卖只此一件，售出即绝版。',
+ '🐰', NULL, '#ffc2cf', 120, 20, 600, 45, '兔耳,苏苏,复刻', 20, 1, 120, NULL, NOW() + INTERVAL 45 MINUTE),
+
+(3, 'AU-LOT-03', '白月初的符笔', '毒舌道士的随身之物', '白月初画符用旧的笔，笔尖还残留着一点神火之气。据本人说「就是支普通破笔」，但一气道盟的人抢破了头。',
+ '🖌', NULL, '#7fc7ff', 150, 20, 700, 60, '符笔,月初,神火', 30, 1, 150, NULL, NOW() + INTERVAL 60 MINUTE),
+
+(4, 'AU-LOT-04', '王权剑断刃碎片', '王权富贵一剑的余威', '王权剑当年斩妖崩落的断刃，巴掌大小，握住时能听见隐约的剑鸣。红中姐验过货，说是真品，还替它讨了个好彩头。',
+ '⚔', NULL, '#ffb35c', 200, 20, 900, 60, '王权剑,断刃,剑鸣', 40, 1, 200, NULL, NOW() + INTERVAL 60 MINUTE),
+
+(5, 'AU-LOT-05', '虚空之泪 · 未镶坠版', '留不住的人，留得住一滴泪', '尚未镶坠的虚空之泪原石，蓝得像深夜的湖。镶坠要另付工钱，但懂行的人都知道，原石的念想比成品更重。',
+ '💧', NULL, '#e09bff', 300, 30, 0, 90, '虚空之泪,原石,念想', 50, 1, 300, NULL, NOW() + INTERVAL 90 MINUTE),
+
+(6, 'AU-LOT-06', '续缘术演示名额', '容容亲授 · 全场压轴', '涂山不外传的看家法术演示名额一个，由容容亲自讲解原理（不含实操）。每季只开一场，价高者得，雅雅还附赠一杯苦情树茶。',
+ '🧵', NULL, '#ff5c7a', 500, 50, 2000, 120, '续缘术,容容,名额', 60, 1, 500, NULL, NOW() + INTERVAL 120 MINUTE);
 
 -- ============================================================================
 -- 演示账号 admin / 123456（明文密码，permission=0 管理员权限）

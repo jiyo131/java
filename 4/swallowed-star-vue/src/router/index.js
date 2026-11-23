@@ -6,6 +6,7 @@ import RedLineTaskPage from '../views/RedLineTaskPage.vue'
 import MyHome from '../views/MyHome.vue'
 import ShopPage from '../views/ShopPage.vue'
 import GamePage from '../views/GamePage.vue'
+import AuctionPage from '../views/AuctionPage.vue'
 import AdminLogin from '../views/AdminLogin.vue'
 import AdminLayout from '../views/admin/AdminLayout.vue'
 import AdminEntries from '../views/admin/AdminEntries.vue'
@@ -13,6 +14,7 @@ import AdminCategories from '../views/admin/AdminCategories.vue'
 import AdminUsers from '../views/admin/AdminUsers.vue'
 import AdminTasks from '../views/admin/AdminTasks.vue'
 import AdminShop from '../views/admin/AdminShop.vue'
+import AdminAuction from '../views/admin/AdminAuction.vue'
 
 const TOKEN_KEY = 'ss_token'
 const ADMIN_TOKEN_KEY = 'ss_admin_token'
@@ -31,6 +33,8 @@ const routes = [
   { path: '/shop', name: 'shop', component: ShopPage, meta: { title: '兑换商店 · 涂山小铺' } },
   // 打地鼠小游戏：导航入口排在「兑换商店」之后（拍小狐妖赚情绪值）
   { path: '/game', name: 'game', component: GamePage, meta: { title: '打地鼠 · 涂山小妖出没' } },
+  // 拍卖行：导航入口排在「打地鼠」之后（情绪值竞价、一口价、轮转开拍）
+  { path: '/auction', name: 'auction', component: AuctionPage, meta: { title: '拍卖行 · 涂山拍卖行' } },
   // ===== 后台管理（独立登录态，仅登录、无注册） =====
   { path: '/admin/login', name: 'admin-login', component: AdminLogin, meta: { title: '后台管理系统 · 登录' } },
   {
@@ -43,7 +47,8 @@ const routes = [
       { path: 'categories', name: 'admin-categories', component: AdminCategories, meta: { title: '分类管理 · 后台管理系统' } },
       { path: 'users', name: 'admin-users', component: AdminUsers, meta: { title: '账号管理 · 后台管理系统' } },
       { path: 'tasks', name: 'admin-tasks', component: AdminTasks, meta: { title: '任务管理 · 后台管理系统' } },
-      { path: 'shop', name: 'admin-shop', component: AdminShop, meta: { title: '商店管理 · 后台管理系统' } }
+      { path: 'shop', name: 'admin-shop', component: AdminShop, meta: { title: '商店管理 · 后台管理系统' } },
+      { path: 'auction', name: 'admin-auction', component: AdminAuction, meta: { title: '拍卖管理 · 后台管理系统' } }
     ]
   }
 ]
@@ -69,7 +74,7 @@ router.beforeEach((to) => {
     return adminLogged ? undefined : '/admin/login'
   }
 
-  if ((to.path === '/home' || to.path === '/tasks' || to.path === '/me' || to.path === '/shop' || to.path === '/game') && !logged) {
+  if ((to.path === '/home' || to.path === '/tasks' || to.path === '/me' || to.path === '/shop' || to.path === '/game' || to.path === '/auction') && !logged) {
     return '/login'
   }
   if ((to.path === '/login' || to.path === '/') && logged) {

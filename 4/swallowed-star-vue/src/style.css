@@ -1150,12 +1150,62 @@ body.modal-locked .home-shell{overflow:hidden}
   border:1px solid rgba(255,217,160,.45);background:rgba(255,217,160,.08);
 }
 
+/* 红线挚友（2026-11-23 新增，我的主页） */
+.fr-search{display:flex;gap:8px;margin-bottom:8px}
+.fr-input{
+  flex:1;min-width:0;padding:8px 14px;border-radius:999px;
+  font-size:12px;letter-spacing:1px;color:var(--text,#f5e9ef);
+  background:rgba(28,13,22,.45);border:1px solid var(--panel-line);outline:none;transition:.2s;
+}
+.fr-input::placeholder{color:var(--muted)}
+.fr-input:focus{border-color:var(--pink);box-shadow:0 0 12px rgba(255,92,122,.18)}
+.fr-btn{
+  padding:8px 18px;border-radius:999px;cursor:pointer;flex-shrink:0;
+  font-size:11.5px;letter-spacing:2px;color:#5c1226;
+  background:linear-gradient(92deg,var(--pink),var(--gold));border:0;transition:.2s;
+}
+.fr-btn:disabled{opacity:.55;cursor:not-allowed}
+.fr-btn:hover:not(:disabled){filter:brightness(1.08);box-shadow:0 0 14px rgba(255,158,181,.4)}
+.fr-btn.is-ghost{
+  color:var(--muted);background:transparent;
+  border:1px solid var(--panel-line);padding:8px 12px;
+}
+.fr-tip{margin:2px 0 8px;font-size:11px;letter-spacing:1px;color:var(--muted)}
+.fr-results{margin-bottom:14px;padding-bottom:6px;border-bottom:1px dashed rgba(255,178,199,.16)}
+.fr-state{
+  padding:3px 10px;border-radius:999px;flex-shrink:0;
+  font-size:10px;letter-spacing:1px;color:var(--muted);
+  border:1px dashed var(--panel-line);background:transparent;
+}
+.fr-avatar{
+  display:flex;align-items:center;justify-content:center;
+  font-size:15px;font-weight:700;color:#ffd9c2;
+}
+.fr-col{margin-top:14px}
+.fr-actions{display:flex;gap:6px;flex-shrink:0}
+.my-task-btn.is-ghost{
+  color:var(--muted);background:transparent;
+  border:1px solid var(--panel-line);
+}
+.my-task-btn.is-ghost:hover{box-shadow:none;border-color:var(--pink);color:var(--pink)}
+.my-task-btn.is-danger{
+  color:#ffd9d9;background:transparent;border:1px solid rgba(255,92,122,.4);
+}
+.my-task-btn.is-danger:hover{border-color:#ff5c7a;color:#ff8ba0;box-shadow:none}
+.my-task-btn.is-danger.arm{
+  color:#fff;background:linear-gradient(92deg,#ff5c7a,#ff9eb5);border-color:transparent;
+}
+
 @media (max-width:760px){
   .my-card{padding:16px 14px}
   .my-id-stats{gap:16px}
   .my-camp-opts{grid-template-columns:1fr}
   .my-ladder{grid-template-columns:1fr 1fr}
   .my-tasks{grid-template-columns:1fr}
+  .fr-search{flex-wrap:wrap}
+  .fr-input{flex:1 1 100%}
+  .fr-row{flex-wrap:wrap}
+  .fr-actions{width:100%;justify-content:flex-end}
 }
 
 /* ===== 兑换商店独立页面（/shop，导航入口在「我的主页」之后） ===== */
@@ -1432,4 +1482,106 @@ body.modal-locked .home-shell{overflow:hidden}
 @media (max-width:760px){
   .cult-meditate{flex-direction:column;align-items:stretch;text-align:left}
   .cult-btn{text-align:center}
+}
+
+/* ===== 涂山拍卖行独立页面（/auction，导航入口在「打地鼠」之后，2026-11-23） ===== */
+.au-head{padding-bottom:16px;margin-bottom:18px}
+.au-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px}
+.au-card{
+  position:relative;padding:16px;border-radius:16px;transition:.2s;
+  background:rgba(28,13,22,.42);border:1px solid var(--panel-line);
+}
+.au-card:hover{border-color:var(--au-color,var(--pink));transform:translateY(-2px);box-shadow:0 8px 24px rgba(255,92,122,.12)}
+.au-card.is-mine{border-color:var(--gold)}
+.au-card.is-mine::after{
+  content:"我领先";position:absolute;top:12px;right:12px;
+  padding:2px 10px;border-radius:999px;font-size:10px;letter-spacing:2px;
+  color:#5c1226;background:linear-gradient(92deg,var(--gold),var(--pink));
+}
+.au-badge{
+  padding:3px 10px;border-radius:999px;flex-shrink:0;
+  font-size:10px;letter-spacing:1px;color:var(--muted);
+  border:1px dashed var(--panel-line);background:transparent;
+}
+.au-badge.is-open{color:#7fe7c9;border-color:rgba(127,231,201,.4)}
+.au-badge.is-mine-badge{color:var(--gold);border-color:rgba(255,217,160,.45)}
+.au-priceline{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;margin:10px 0 4px}
+.au-price b{font-size:26px;line-height:1;color:var(--gold);text-shadow:0 0 14px rgba(255,217,160,.3)}
+.au-price span{display:block;margin-top:4px;font-size:10px;letter-spacing:1px;color:var(--muted)}
+.au-timer{
+  padding:4px 12px;border-radius:999px;flex-shrink:0;
+  font-size:12px;letter-spacing:1px;color:var(--pink);
+  background:rgba(255,92,122,.08);border:1px solid rgba(255,92,122,.28);
+}
+.au-timer.urgent{
+  color:#ff5c7a;background:rgba(255,92,122,.16);
+  border-color:#ff5c7a;animation:au-pulse 1.2s ease-in-out infinite;
+}
+@keyframes au-pulse{0%,100%{box-shadow:0 0 0 rgba(255,92,122,.4)}50%{box-shadow:0 0 14px rgba(255,92,122,.45)}}
+.au-bidline{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}
+.au-minhint{font-size:10.5px;letter-spacing:.5px;color:var(--muted)}
+.au-history-toggle{
+  padding:2px 8px;border-radius:999px;cursor:pointer;flex-shrink:0;
+  font-size:10px;letter-spacing:1px;color:var(--pink);
+  background:transparent;border:1px solid rgba(255,158,181,.3);
+}
+.au-history-toggle:hover{border-color:var(--pink)}
+.au-actions{display:flex;gap:8px;flex-wrap:wrap}
+.au-input{
+  flex:1;min-width:80px;padding:8px 12px;border-radius:12px;
+  font-size:12px;letter-spacing:1px;color:var(--text,#f5e9ef);
+  background:rgba(28,13,22,.5);border:1px solid var(--panel-line);outline:none;transition:.2s;
+}
+.au-input::placeholder{color:var(--muted)}
+.au-input:focus{border-color:var(--au-color,var(--pink))}
+.au-input::-webkit-outer-spin-button,.au-input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.au-bid{
+  padding:8px 16px;border-radius:12px;cursor:pointer;flex-shrink:0;
+  font-size:11.5px;letter-spacing:2px;color:#5c1226;
+  background:linear-gradient(92deg,var(--pink),var(--gold));border:0;transition:.2s;
+}
+.au-bid:disabled{opacity:.55;cursor:not-allowed}
+.au-bid:hover:not(:disabled){filter:brightness(1.08);box-shadow:0 0 14px rgba(255,158,181,.4)}
+.au-buyout{
+  padding:8px 14px;border-radius:12px;cursor:pointer;flex-shrink:0;
+  font-size:11px;letter-spacing:1px;color:var(--gold);
+  background:transparent;border:1px solid rgba(255,217,160,.45);transition:.2s;
+}
+.au-buyout:hover:not(:disabled){border-color:var(--gold);box-shadow:0 0 12px rgba(255,217,160,.25)}
+.au-buyout.confirm{
+  color:#5c1226;background:linear-gradient(92deg,var(--gold),var(--pink));border-color:transparent;
+}
+.au-history{margin-top:10px;padding-top:8px;border-top:1px dashed rgba(255,178,199,.16)}
+.au-history-hint{font-size:10.5px;letter-spacing:1px;color:var(--muted);padding:4px 0}
+.au-history-list{max-height:150px;overflow-y:auto;display:flex;flex-direction:column;gap:6px}
+.au-history-row{
+  display:flex;align-items:center;gap:10px;padding:5px 10px;border-radius:10px;
+  font-size:11px;background:rgba(28,13,22,.35);
+}
+.au-history-row.mine{border:1px solid rgba(255,217,160,.4)}
+.au-history-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted)}
+.au-history-amount{color:var(--gold);letter-spacing:1px}
+.au-history-time{font-size:9.5px;color:rgba(255,158,181,.5)}
+.au-deal-hint{font-size:10.5px;letter-spacing:1px;color:var(--muted)}
+.au-deals{display:flex;flex-direction:column;gap:8px}
+.au-deal-row{
+  display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:12px;
+  background:rgba(28,13,22,.4);border:1px solid var(--panel-line);transition:.2s;
+}
+.au-deal-row.mine{border-color:rgba(255,217,160,.4)}
+.au-deal-row.is-passed{opacity:.65}
+.au-deal-glyph{font-size:18px;line-height:1}
+.au-deal-type{
+  padding:2px 8px;border-radius:999px;font-size:9.5px;letter-spacing:1px;
+  margin-left:6px;font-style:normal;vertical-align:1px;
+}
+.au-deal-type.is-t1{color:#7fe7c9;border:1px solid rgba(127,231,201,.4)}
+.au-deal-type.is-t2{color:var(--gold);border:1px solid rgba(255,217,160,.45)}
+.au-deal-type.is-t3{color:var(--muted);border:1px dashed var(--panel-line)}
+.au-deal-price{margin-left:auto;font-size:14px;color:var(--gold);letter-spacing:1px;flex-shrink:0}
+
+@media (max-width:760px){
+  .au-grid{grid-template-columns:1fr}
+  .au-actions{flex-direction:column}
+  .au-input{flex:1 1 100%}
 }

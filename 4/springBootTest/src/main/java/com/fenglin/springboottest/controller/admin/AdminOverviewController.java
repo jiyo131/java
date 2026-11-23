@@ -2,12 +2,14 @@ package com.fenglin.springboottest.controller.admin;
 
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.fenglin.springboottest.common.Result;
+import com.fenglin.springboottest.entity.AuctionLot;
 import com.fenglin.springboottest.entity.Category;
 import com.fenglin.springboottest.entity.Entry;
 import com.fenglin.springboottest.entity.RedLineTask;
 import com.fenglin.springboottest.entity.SearchLog;
 import com.fenglin.springboottest.entity.ShopItem;
 import com.fenglin.springboottest.entity.User;
+import com.fenglin.springboottest.mapper.AuctionLotMapper;
 import com.fenglin.springboottest.mapper.RedLineTaskMapper;
 import com.fenglin.springboottest.mapper.ShopItemMapper;
 import com.fenglin.springboottest.service.AdminGuard;
@@ -54,6 +56,9 @@ public class AdminOverviewController {
     @Autowired
     private ShopItemMapper shopItemMapper;
 
+    @Autowired
+    private AuctionLotMapper auctionLotMapper;
+
     @GetMapping
     public Result<Map<String, Object>> overview(@RequestHeader(value = "Authorization", required = false) String auth) {
         if (adminGuard.adminOf(auth) == null) {
@@ -78,6 +83,11 @@ public class AdminOverviewController {
         data.put("shopTotal", shopItemMapper.selectCount(null));
         data.put("shopOnline", shopItemMapper.selectCount(
                 Wrappers.lambdaQuery(ShopItem.class).eq(ShopItem::getStatus, 1)));
+
+        // 拍卖统计：拍品总数 + 上架（在拍）数（拍卖管理页的数据概览）
+        data.put("auctionTotal", auctionLotMapper.selectCount(null));
+        data.put("auctionOnline", auctionLotMapper.selectCount(
+                Wrappers.lambdaQuery(AuctionLot.class).eq(AuctionLot::getStatus, 1)));
 
         // 浏览量合计（单条聚合 SQL）
         List<Object> viewSum = entryService.listObjs(

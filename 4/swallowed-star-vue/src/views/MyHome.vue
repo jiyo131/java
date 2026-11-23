@@ -242,6 +242,110 @@
           </div>
         </div>
       </section>
+
+      <!-- ===== 红线挚友：搜索结缘 / 申请往来 / 好友列表 ===== -->
+      <section id="friend-card" class="my-card">
+        <div class="my-camp-head">
+          <h4 class="my-title">红线挚友</h4>
+          <p class="my-sub">以红线相连的同道，看看谁的道行更深、攒的情更多</p>
+        </div>
+
+        <!-- 搜索同道 -->
+        <div class="fr-search">
+          <input
+            v-model="frKeyword"
+            class="fr-input"
+            type="text"
+            maxlength="32"
+            placeholder="搜账号或昵称，牵一条红线"
+            @keyup.enter="onSearch"
+          />
+          <button class="fr-btn" :disabled="frSearching || !frKeyword.trim()" @click="onSearch">
+            {{ frSearching ? '寻人中…' : '寻 人' }}
+          </button>
+          <button v-if="frKeyword || frResults.length" class="fr-btn is-ghost" @click="clearSearch">✕</button>
+        </div>
+        <p v-if="frTip" class="fr-tip">{{ frTip }}</p>
+        <div v-if="frResults.length" class="fr-results">
+          <div v-for="u in frResults" :key="u.userId" class="my-task fr-row" :style="{ '--task-color': '#ff9eb5' }">
+            <span class="my-task-glyph fr-avatar">{{ (u.nickname || u.username || '缘')[0] }}</span>
+            <div class="my-task-text">
+              <b>{{ u.nickname }}</b>
+              <span>@{{ u.username }} · {{ u.campText }} · {{ u.realmTitle }} · 修为 {{ u.cultivation }}</span>
+            </div>
+            <button v-if="u.relation === 'none'" class="my-task-btn" :disabled="frBusyId !== null" @click="onAdd(u)">
+              {{ frBusyId === u.userId ? '递红线中…' : '+ 结缘' }}
+            </button>
+            <span v-else-if="u.relation === 'friend'" class="my-task-seal">已是挚友</span>
+            <span v-else-if="u.relation === 'outgoing'" class="fr-state">待对方回应</span>
+            <button v-else-if="u.relation === 'incoming'" class="my-task-btn" @click="focusIncoming">
+              去同意 ›
+            </button>
+          </div>
+        </div>
+
+        <!-- 收到的申请 -->
+        <div class="fr-col">
+          <h5 class="my-col-title is-doing">📨 收到的申请（{{ (friends.incoming || []).length }}）</h5>
+          <p v-if="!(friends.incoming || []).length" class="my-empty">暂无递来的红线，先去搜一搜同道中人吧</p>
+          <div v-for="r in friends.incoming || []" :key="'in' + r.id" class="my-task is-doing fr-row">
+            <span class="my-task-glyph fr-avatar">{{ (r.nickname || r.username || '缘')[0] }}</span>
+            <div class="my-task-text">
+              <b>{{ r.nickname }}</b>
+              <span>
+                @{{ r.username }} · {{ r.campText }} · {{ r.realmTitle }} · 申请于 {{ r.createdAt || '—' }}
+                <template v-if="r.message"> · 留言「{{ r.message }}」</template>
+              </span>
+            </div>
+            <div class="fr-actions">
+              <button class="my-task-btn" :disabled="frBusyId !== null" @click="onAccept(r)">同意</button>
+              <button class="my-task-btn is-ghost" :disabled="frBusyId !== null" @click="onReject(r)">婉拒</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 发出的申请 -->
+        <div v-if="(friends.outgoing || []).length" class="fr-col">
+          <h5 class="my-col-title">🧶 发出的申请（{{ (friends.outgoing || []).length }}）</h5>
+          <div v-for="r in friends.outgoing || []" :key="'out' + r.id" class="my-task fr-row">
+            <span class="my-task-glyph fr-avatar">{{ (r.nickname || r.username || '缘')[0] }}</span>
+            <div class="my-task-text">
+              <b>{{ r.nickname }}</b>
+              <span>@{{ r.username }} · {{ r.campText }} · 申请于 {{ r.createdAt || '—' }} · 等待回应</span>
+            </div>
+            <button class="my-task-btn is-ghost" :disabled="frBusyId !== null" @click="onCancel(r)">撤回</button>
+          </div>
+        </div>
+
+        <!-- 好友列表 -->
+        <div class="fr-col">
+          <h5 class="my-col-title is-done">💞 我的挚友（{{ friends.friendCount ?? 0 }}）</h5>
+          <p v-if="!(friends.friends || []).length" class="my-empty">还没有结缘的挚友——去牵第一条红线吧</p>
+          <div
+            v-for="f in friends.friends || []"
+            :key="'fr' + f.userId"
+            class="my-task is-done fr-row"
+            :style="{ '--task-color': f.camp === 2 ? '#a78bfa' : '#ff9eb5' }"
+          >
+            <span class="my-task-glyph fr-avatar">{{ (f.nickname || f.username || '缘')[0] }}</span>
+            <div class="my-task-text">
+              <b>{{ f.nickname }}</b>
+              <span>
+                @{{ f.username }} · {{ f.realmTitle }} · 修为 {{ f.cultivation }} · 情绪值 {{ f.emotion }}
+                · 结缘于 {{ f.since || '—' }}
+              </span>
+            </div>
+            <button
+              class="my-task-btn is-danger"
+              :class="{ arm: frRemoveArm === f.userId }"
+              :disabled="frBusyId !== null"
+              @click="onRemove(f)"
+            >
+              {{ frRemoveArm === f.userId ? '再点确认绝交' : '绝交' }}
+            </button>
+          </div>
+        </div>
+      </section>
     </div>
   </main>
 </template>
@@ -255,6 +359,15 @@ import { useToast } from '../composables/useToast.js'
 import { fetchOverview } from '../api/home.js'
 import { fetchProfile, updateCamp } from '../api/profile.js'
 import { fetchCultivation, meditate, useItem } from '../api/cultivation.js'
+import {
+  fetchFriends,
+  searchUsers,
+  sendFriendRequest,
+  acceptFriendRequest,
+  rejectFriendRequest,
+  cancelFriendRequest,
+  removeFriend
+} from '../api/friends.js'
 
 const router = useRouter()
 const { show } = useToast()
@@ -272,6 +385,16 @@ const meditating = ref(false)
 const cultFlash = ref(false)
 const usingId = ref(null)
 
+// 红线挚友
+const friends = ref({})
+const frKeyword = ref('')
+const frResults = ref([])
+const frTip = ref('')
+const frSearching = ref(false)
+const frBusyId = ref(null)
+const frRemoveArm = ref(null)
+let frRemoveTimer = null
+
 const categories = ref([])
 const stats = ref({ entryCount: 0, categoryCount: 0, viewCount: 0 })
 
@@ -282,6 +405,7 @@ const navs = computed(() => {
   const meNav = { key: 'me', label: '我的主页' }
   const shopNav = { key: 'shop', label: '兑换商店' }
   const gameNav = { key: 'game', label: '打地鼠' }
+  const auctionNav = { key: 'auction', label: '拍卖行' }
   categories.value.forEach((c, i) => {
     list.push({ key: String(c.id), label: c.name, count: c.count })
     if (i === 0) {
@@ -296,6 +420,7 @@ const navs = computed(() => {
   }
   list.push(shopNav)
   list.push(gameNav)
+  list.push(auctionNav)
   return list
 })
 
@@ -423,11 +548,187 @@ function onNav(n) {
     router.push('/shop')
     return
   }
+  if (n.key === 'auction') {
+    router.push('/auction')
+    return
+  }
   if (n.key === 'game') {
     router.push('/game')
     return
   }
   router.push({ path: '/home', query: { cat: n.key } })
+}
+
+/* ================= 红线挚友 ================= */
+
+async function loadFriends() {
+  try {
+    const data = await fetchFriends()
+    if (data) friends.value = data
+  } catch (e) {
+    if (e.code === 401) {
+      logout()
+      router.push('/login')
+      return
+    }
+    // 好友数据加载失败不阻塞主页主体
+  }
+}
+
+async function onSearch() {
+  const kw = frKeyword.value.trim()
+  if (!kw || frSearching.value) return
+  frSearching.value = true
+  frTip.value = ''
+  try {
+    const list = (await searchUsers(kw)) || []
+    frResults.value = list
+    frTip.value = list.length ? '' : '没有找到这位红线仙——换个名字试试'
+  } catch (e) {
+    if (e.code === 401) {
+      logout()
+      router.push('/login')
+      return
+    }
+    frResults.value = []
+    frTip.value = e.message || '搜索失败，请稍后再试'
+  } finally {
+    frSearching.value = false
+  }
+}
+
+function clearSearch() {
+  frKeyword.value = ''
+  frResults.value = []
+  frTip.value = ''
+}
+
+async function onAdd(u) {
+  if (frBusyId.value !== null) return
+  frBusyId.value = u.userId
+  try {
+    const data = await sendFriendRequest(u.userId)
+    if (data) friends.value = data
+    frTip.value = ''
+    show(`红线已递给「${u.nickname}」，等 TA 回应吧`, 'ok')
+    frResults.value = frResults.value.map((it) =>
+      it.userId === u.userId ? { ...it, relation: 'outgoing' } : it
+    )
+  } catch (e) {
+    if (e.code === 401) {
+      logout()
+      router.push('/login')
+      return
+    }
+    show('递红线失败：' + (e.message || '请稍后再试'), 'err')
+    // 以服务端状态为准（可能已是好友 / 已有申请）
+    onSearch()
+  } finally {
+    frBusyId.value = null
+  }
+}
+
+async function onAccept(r) {
+  if (frBusyId.value !== null) return
+  frBusyId.value = r.id
+  try {
+    const data = await acceptFriendRequest(r.id)
+    if (data) friends.value = data
+    show(`已与「${r.nickname}」结为挚友`, 'ok')
+    await loadProfile()
+  } catch (e) {
+    if (e.code === 401) {
+      logout()
+      router.push('/login')
+      return
+    }
+    show('同意失败：' + (e.message || '请稍后再试'), 'err')
+    await loadFriends()
+  } finally {
+    frBusyId.value = null
+  }
+}
+
+async function onReject(r) {
+  if (frBusyId.value !== null) return
+  frBusyId.value = r.id
+  try {
+    const data = await rejectFriendRequest(r.id)
+    if (data) friends.value = data
+    show(`已婉拒「${r.nickname}」的红线`, 'ok')
+  } catch (e) {
+    if (e.code === 401) {
+      logout()
+      router.push('/login')
+      return
+    }
+    show('婉拒失败：' + (e.message || '请稍后再试'), 'err')
+    await loadFriends()
+  } finally {
+    frBusyId.value = null
+  }
+}
+
+async function onCancel(r) {
+  if (frBusyId.value !== null) return
+  frBusyId.value = r.id
+  try {
+    const data = await cancelFriendRequest(r.id)
+    if (data) friends.value = data
+    show(`已收回递给「${r.nickname}」的红线`, 'ok')
+    frResults.value = frResults.value.map((it) =>
+      it.userId === r.userId ? { ...it, relation: 'none' } : it
+    )
+  } catch (e) {
+    if (e.code === 401) {
+      logout()
+      router.push('/login')
+      return
+    }
+    show('撤回失败：' + (e.message || '请稍后再试'), 'err')
+    await loadFriends()
+  } finally {
+    frBusyId.value = null
+  }
+}
+
+async function onRemove(f) {
+  if (frBusyId.value !== null) return
+  // 两段确认：4 秒内再点一次才真的绝交（仿任务页取消确认）
+  if (frRemoveArm.value !== f.userId) {
+    frRemoveArm.value = f.userId
+    clearTimeout(frRemoveTimer)
+    frRemoveTimer = setTimeout(() => {
+      frRemoveArm.value = null
+    }, 4000)
+    return
+  }
+  clearTimeout(frRemoveTimer)
+  frRemoveArm.value = null
+  frBusyId.value = f.userId
+  try {
+    const data = await removeFriend(f.userId)
+    if (data) friends.value = data
+    show(`已与「${f.nickname}」斩断红线`, 'ok')
+  } catch (e) {
+    if (e.code === 401) {
+      logout()
+      router.push('/login')
+      return
+    }
+    show('绝交失败：' + (e.message || '请稍后再试'), 'err')
+    await loadFriends()
+  } finally {
+    frBusyId.value = null
+  }
+}
+
+function focusIncoming() {
+  frResults.value = []
+  frKeyword.value = ''
+  frTip.value = ''
+  const card = document.getElementById('friend-card')
+  if (card) card.scrollIntoView({ behavior: 'smooth', block: 'start' })
 }
 
 const goHome = () => router.push('/home')
@@ -448,7 +749,7 @@ onMounted(async () => {
   }
   nickname.value = me.nickname || me.username || nickname.value
   isAdmin.value = me.permission === 0
-  await Promise.all([loadProfile(), loadOverview(), loadCultivation()])
+  await Promise.all([loadProfile(), loadOverview(), loadCultivation(), loadFriends()])
 })
 
 async function loadOverview() {

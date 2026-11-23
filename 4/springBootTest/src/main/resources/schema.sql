@@ -211,3 +211,95 @@ CREATE TABLE IF NOT EXISTS star_game_record (
   PRIMARY KEY (id),
   KEY idx_user_created (user_id, created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='涂山小游戏战绩';
+
+-- 13) 好友关系（2026-11-23 新增，我的主页·红线挚友） -------------------------
+-- 双向存储：A 与 B 成为好友时写 (A,B) 与 (B,A) 两行，查「我的好友」只扫 user_id。
+CREATE TABLE IF NOT EXISTS star_friend (
+  id         BIGINT   NOT NULL AUTO_INCREMENT COMMENT '主键',
+  user_id    BIGINT   NOT NULL                COMMENT '归属用户 id',
+  friend_id  BIGINT   NOT NULL                COMMENT '好友用户 id',
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '结缘时间',
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_user_friend (user_id, friend_id),
+  KEY idx_friend_of (friend_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='红线挚友（好友关系，双向两行）';
+
+-- 14) 好友申请 ---------------------------------------------------------------
+-- 同一方向的申请只有一条记录（uk_req）：同意后落 star_friend 两行并把 status 置 2；
+-- 拒绝把 status 置 3、撤回删除记录，被拒后可再次发起（复用原记录改回待处理）。
+CREATE TABLE IF NOT EXISTS star_friend_request (
+  id           BIGINT       NOT NULL AUTO_INCREMENT COMMENT '主键',
+  from_user_id BIGINT       NOT NULL                COMMENT '发起人 id',
+  to_user_id   BIGINT       NOT NULL                COMMENT '接收人 id',
+  message      VARCHAR(128) DEFAULT NULL            COMMENT '申请留言',
+  status       TINYINT      NOT NULL DEFAULT 1      COMMENT '1 待处理 / 2 已同意 / 3 已拒绝',
+  created_at   DATETIME     DEFAULT CURRENT_TIMESTAMP COMMENT '发起时间',
+  handled_at   DATETIME     DEFAULT NULL            COMMENT '处理时间（同意/拒绝）',
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_req (from_user_id, to_user_id),
+  KEY idx_req_to (to_user_id, status),
+  KEY idx_req_from (from_user_id, status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='好友申请';
+
+-- 15) 涂山拍卖行 · 拍品（2026-11-23 新增，独立页面 /auction，导航在「打地鼠」之后） ----
+-- 拍品即模板：base_price 底价 / step 加价幅度 / buyout_price 一口价（0 = 无一口价）/
+-- duration_min 每场时长（分钟）。runtime 三字段是当前场次状态：current_price 当前价
+-- （首价 = 底价，此后每次 ≥ 当前价 + step）、leader_user_id 当前领先者、end_time 结拍时间。
+-- 结拍（end_time <= now）懒结算：有领先者 → 竞价成交落 star_auction_deal；无人出价 → 流拍；
+-- 结算后立刻开下一场（current_price=base_price，leader 清空，end_time=now+duration_min），永不断档。
+CREATE TABLE IF NOT EXISTS star_auction_lot (
+  id            BIGINT       NOT NULL AUTO_INCREMENT COMMENT '主键',
+  code          VARCHAR(48)  NOT NULL                COMMENT '拍品编码（唯一，便于脚本引用）',
+  name          VARCHAR(64)  NOT NULL                COMMENT '拍品名称',
+  subtitle      VARCHAR(128) DEFAULT NULL            COMMENT '副标题 / 一句话说明',
+  description   VARCHAR(500) DEFAULT NULL            COMMENT '拍品详情',
+  glyph         VARCHAR(16)  DEFAULT NULL            COMMENT '拍品图标（emoji）',
+  icon          VARCHAR(255) DEFAULT NULL            COMMENT '拍品图标图片路径，icon 为空时回退 glyph',
+  color         VARCHAR(16)  DEFAULT NULL            COMMENT '拍品主色（#RRGGBB），驱动前端卡片光效',
+  base_price    INT          NOT NULL DEFAULT 10     COMMENT '底价（首拍最低出价）',
+  step          INT          NOT NULL DEFAULT 10     COMMENT '加价幅度（每次出价至少 +step）',
+  buyout_price  INT          NOT NULL DEFAULT 0      COMMENT '一口价（0 = 不设一口价）',
+  duration_min  INT          NOT NULL DEFAULT 60     COMMENT '每场拍卖时长（分钟）',
+  tags          VARCHAR(255) DEFAULT NULL            COMMENT '关键词标签，英文逗号分隔',
+  sort_no       INT          NOT NULL DEFAULT 0      COMMENT '排序（小值优先）',
+  status        TINYINT      NOT NULL DEFAULT 1      COMMENT '状态：1 上架 / 0 下架',
+  current_price INT          NOT NULL DEFAULT 0      COMMENT '当前场次最高价（开拍时重置为底价）',
+  leader_user_id BIGINT      DEFAULT NULL            COMMENT '当前领先者用户 id（无人出价为 NULL）',
+  end_time      DATETIME     DEFAULT NULL            COMMENT '当前场次结拍时间',
+  created_at    DATETIME     DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_lot_code (code),
+  KEY idx_lot_status (status, sort_no),
+  KEY idx_lot_end (end_time)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='涂山拍卖行拍品（模板+当前场次状态）';
+
+-- 16) 拍卖出价流水 -----------------------------------------------------------
+-- 只增不改：每次有效出价落一条（出价即扣情绪值，被超越全额退款，退款不落此表）。
+CREATE TABLE IF NOT EXISTS star_auction_bid (
+  id         BIGINT   NOT NULL AUTO_INCREMENT COMMENT '主键',
+  lot_id     BIGINT   NOT NULL                COMMENT '拍品 id',
+  user_id    BIGINT   NOT NULL                COMMENT '出价人 id',
+  amount     INT      NOT NULL DEFAULT 0      COMMENT '出价（情绪值）',
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '出价时间',
+  PRIMARY KEY (id),
+  KEY idx_bid_lot (lot_id, created_at),
+  KEY idx_bid_user (user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='拍卖行出价流水';
+
+-- 17) 拍卖成交 / 流拍留档 ------------------------------------------------------
+-- 只增不改：结拍懒结算或一口价成交时落一条。deal_type：1 竞价成交 / 2 一口价 / 3 流拍。
+-- 「我的夺宝」= winner_user_id = 我的 1/2 记录；流拍仅作行史，winner 为 NULL。
+CREATE TABLE IF NOT EXISTS star_auction_deal (
+  id            BIGINT      NOT NULL AUTO_INCREMENT COMMENT '主键',
+  lot_id        BIGINT      NOT NULL                COMMENT '拍品 id',
+  name          VARCHAR(64) NOT NULL                COMMENT '拍品名称快照（轮转重开后 lot 行会复用）',
+  glyph         VARCHAR(16) DEFAULT NULL            COMMENT '拍品图标快照',
+  color         VARCHAR(16) DEFAULT NULL            COMMENT '拍品主色快照',
+  price         INT         NOT NULL DEFAULT 0      COMMENT '成交价（流拍为 0）',
+  deal_type     TINYINT     NOT NULL DEFAULT 1      COMMENT '1 竞价成交 / 2 一口价 / 3 流拍',
+  winner_user_id BIGINT     DEFAULT NULL            COMMENT '得主用户 id（流拍为 NULL）',
+  created_at    DATETIME    DEFAULT CURRENT_TIMESTAMP COMMENT '成交 / 流拍时间',
+  PRIMARY KEY (id),
+  KEY idx_deal_winner (winner_user_id),
+  KEY idx_deal_created (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='拍卖行成交/流拍留档';

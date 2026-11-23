@@ -1,0 +1,25 @@
+// vite.config.js
+import { defineConfig } from "file:///D:/workSpace/java/4/swallowed-star-vue/node_modules/vite/dist/node/index.js";
+import vue from "file:///D:/workSpace/java/4/swallowed-star-vue/node_modules/@vitejs/plugin-vue/dist/index.mjs";
+var vite_config_default = defineConfig({
+  plugins: [vue()],
+  server: {
+    host: true,
+    port: 5173,
+    open: true,
+    proxy: {
+      // /api 请求转发到 Spring Boot 后端。
+      // 用 127.0.0.1 而非硬编码局域网 IP：vite 与后端在同一台机器上,
+      // 代理转发由 vite 服务端发起, 回环地址永远可达, 本机 IP 变化(DHCP)不再影响。
+      // 局域网设备照常通过 http://<本机IP>:5173 访问, 代理在服务端完成。
+      "/api": {
+        target: "http://127.0.0.1:8081",
+        changeOrigin: true
+      }
+    }
+  }
+});
+export {
+  vite_config_default as default
+};
+//# sourceMappingURL=data:application/json;base64,ewogICJ2ZXJzaW9uIjogMywKICAic291cmNlcyI6IFsidml0ZS5jb25maWcuanMiXSwKICAic291cmNlc0NvbnRlbnQiOiBbImNvbnN0IF9fdml0ZV9pbmplY3RlZF9vcmlnaW5hbF9kaXJuYW1lID0gXCJEOlxcXFx3b3JrU3BhY2VcXFxcamF2YVxcXFw0XFxcXHN3YWxsb3dlZC1zdGFyLXZ1ZVwiO2NvbnN0IF9fdml0ZV9pbmplY3RlZF9vcmlnaW5hbF9maWxlbmFtZSA9IFwiRDpcXFxcd29ya1NwYWNlXFxcXGphdmFcXFxcNFxcXFxzd2FsbG93ZWQtc3Rhci12dWVcXFxcdml0ZS5jb25maWcuanNcIjtjb25zdCBfX3ZpdGVfaW5qZWN0ZWRfb3JpZ2luYWxfaW1wb3J0X21ldGFfdXJsID0gXCJmaWxlOi8vL0Q6L3dvcmtTcGFjZS9qYXZhLzQvc3dhbGxvd2VkLXN0YXItdnVlL3ZpdGUuY29uZmlnLmpzXCI7aW1wb3J0IHsgZGVmaW5lQ29uZmlnIH0gZnJvbSAndml0ZSdcclxuaW1wb3J0IHZ1ZSBmcm9tICdAdml0ZWpzL3BsdWdpbi12dWUnXHJcblxyXG5leHBvcnQgZGVmYXVsdCBkZWZpbmVDb25maWcoe1xyXG4gIHBsdWdpbnM6IFt2dWUoKV0sXHJcbiAgc2VydmVyOiB7XHJcbiAgICBob3N0OiB0cnVlLFxyXG4gICAgcG9ydDogNTE3MyxcclxuICAgIG9wZW46IHRydWUsXHJcbiAgICBwcm94eToge1xyXG4gICAgICAvLyAvYXBpIFx1OEJGN1x1NkM0Mlx1OEY2Q1x1NTNEMVx1NTIzMCBTcHJpbmcgQm9vdCBcdTU0MEVcdTdBRUZcdTMwMDJcclxuICAgICAgLy8gXHU3NTI4IDEyNy4wLjAuMSBcdTgwMENcdTk3NUVcdTc4NkNcdTdGMTZcdTc4MDFcdTVDNDBcdTU3REZcdTdGNTEgSVBcdUZGMUF2aXRlIFx1NEUwRVx1NTQwRVx1N0FFRlx1NTcyOFx1NTQwQ1x1NEUwMFx1NTNGMFx1NjczQVx1NTY2OFx1NEUwQSxcclxuICAgICAgLy8gXHU0RUUzXHU3NDA2XHU4RjZDXHU1M0QxXHU3NTMxIHZpdGUgXHU2NzBEXHU1MkExXHU3QUVGXHU1M0QxXHU4RDc3LCBcdTU2REVcdTczQUZcdTU3MzBcdTU3NDBcdTZDMzhcdThGRENcdTUzRUZcdThGQkUsIFx1NjcyQ1x1NjczQSBJUCBcdTUzRDhcdTUzMTYoREhDUClcdTRFMERcdTUxOERcdTVGNzFcdTU0Q0RcdTMwMDJcclxuICAgICAgLy8gXHU1QzQwXHU1N0RGXHU3RjUxXHU4QkJFXHU1OTA3XHU3MTY3XHU1RTM4XHU5MDFBXHU4RkM3IGh0dHA6Ly88XHU2NzJDXHU2NzNBSVA+OjUxNzMgXHU4QkJGXHU5NUVFLCBcdTRFRTNcdTc0MDZcdTU3MjhcdTY3MERcdTUyQTFcdTdBRUZcdTVCOENcdTYyMTBcdTMwMDJcclxuICAgICAgJy9hcGknOiB7XHJcbiAgICAgICAgdGFyZ2V0OiAnaHR0cDovLzEyNy4wLjAuMTo4MDgxJyxcclxuICAgICAgICBjaGFuZ2VPcmlnaW46IHRydWVcclxuICAgICAgfVxyXG4gICAgfVxyXG4gIH1cclxufSlcclxuIl0sCiAgIm1hcHBpbmdzIjogIjtBQUE4UyxTQUFTLG9CQUFvQjtBQUMzVSxPQUFPLFNBQVM7QUFFaEIsSUFBTyxzQkFBUSxhQUFhO0FBQUEsRUFDMUIsU0FBUyxDQUFDLElBQUksQ0FBQztBQUFBLEVBQ2YsUUFBUTtBQUFBLElBQ04sTUFBTTtBQUFBLElBQ04sTUFBTTtBQUFBLElBQ04sTUFBTTtBQUFBLElBQ04sT0FBTztBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUEsTUFLTCxRQUFRO0FBQUEsUUFDTixRQUFRO0FBQUEsUUFDUixjQUFjO0FBQUEsTUFDaEI7QUFBQSxJQUNGO0FBQUEsRUFDRjtBQUNGLENBQUM7IiwKICAibmFtZXMiOiBbXQp9Cg==

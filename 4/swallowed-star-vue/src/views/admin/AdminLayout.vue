@@ -27,6 +27,9 @@
         <RouterLink class="ad-tab" :class="{ active: $route.name === 'admin-shop' }" to="/admin/shop">
           商店管理
         </RouterLink>
+        <RouterLink class="ad-tab" :class="{ active: $route.name === 'admin-auction' }" to="/admin/auction">
+          拍卖管理
+        </RouterLink>
       </nav>
 
       <span class="ad-spacer"></span>
@@ -73,7 +76,8 @@ const stats = ref({
   categoryTotal: 0, viewTotal: 0, searchCount30d: 0,
   userTotal: 0, userOnline: 0,
   taskTotal: 0, taskOnline: 0,
-  shopTotal: 0, shopOnline: 0
+  shopTotal: 0, shopOnline: 0,
+  auctionTotal: 0, auctionOnline: 0
 })
 
 const statCards = computed(() => [
@@ -85,6 +89,8 @@ const statCards = computed(() => [
   { key: 'taskOnline', icon: '🧵', label: '可接取任务', value: stats.value.taskOnline },
   { key: 'shop', icon: '🎁', label: '商品总数', value: stats.value.shopTotal },
   { key: 'shopOnline', icon: '🛍️', label: '上架商品', value: stats.value.shopOnline },
+  { key: 'auction', icon: '🔨', label: '拍品总数', value: stats.value.auctionTotal },
+  { key: 'auctionOnline', icon: '⚔️', label: '在拍拍品', value: stats.value.auctionOnline },
   { key: 'user', icon: '👥', label: '账号数', value: stats.value.userTotal },
   { key: 'userOnline', icon: '🧑', label: '正常账号', value: stats.value.userOnline },
   { key: 'view', icon: '👁️', label: '累计浏览量', value: stats.value.viewTotal },

@@ -272,3 +272,47 @@ export async function adminShopRecords(p = {}) {
   const res = await request('GET', '/admin/shop/records', { params: p })
   return res.data
 }
+
+/* ===== 拍卖管理（「涂山拍卖行」拍品数据） ===== */
+
+/**
+ * 拍品列表（含下架数据）
+ * @param {object} p { keyword, status(-1 全部/1 上架/0 下架), page, size }
+ */
+export async function adminAuctionLots(p = {}) {
+  const res = await request('GET', '/admin/auction/lots', { params: p })
+  return res.data
+}
+
+/** 新增拍品（创建后立即按场次时长开拍） */
+export async function adminCreateAuctionLot(lot) {
+  const res = await request('POST', '/admin/auction/lots', { body: lot })
+  return res.data
+}
+
+/** 修改拍品（当前场次不受影响，下一场起生效） */
+export async function adminUpdateAuctionLot(id, lot) {
+  const res = await request('PUT', `/admin/auction/lots/${id}`, { body: lot })
+  return res.data
+}
+
+/** 上架 / 下架（重新上架时场次已过期会自动重开一场） */
+export async function adminAuctionLotStatus(id, status) {
+  const res = await request('PUT', `/admin/auction/lots/${id}/status`, { body: { status } })
+  return res.data
+}
+
+/** 删除拍品（已有出价/成交留档时后端拒绝） */
+export async function adminDeleteAuctionLot(id) {
+  const res = await request('DELETE', `/admin/auction/lots/${id}`)
+  return res.data
+}
+
+/**
+ * 成交 / 流拍纪录列表（新纪录在前）
+ * @param {object} p { dealType(-1 全部/1 竞价成交/2 一口价/3 流拍), lotId, page, size }
+ */
+export async function adminAuctionRecords(p = {}) {
+  const res = await request('GET', '/admin/auction/records', { params: p })
+  return res.data
+}

@@ -169,6 +169,7 @@ const navs = computed(() => {
   const meNav = { key: 'me', label: '我的主页' }
   const shopNav = { key: 'shop', label: '兑换商店' }
   const gameNav = { key: 'game', label: '打地鼠' }
+  const auctionNav = { key: 'auction', label: '拍卖行' }
   categories.value.forEach((c, i) => {
     list.push({ key: String(c.id), label: c.name, count: c.count })
     if (i === 0) {
@@ -182,6 +183,7 @@ const navs = computed(() => {
   }
   list.push(shopNav)
   list.push(gameNav)
+  list.push(auctionNav)
   return list
 })
 
@@ -331,6 +333,10 @@ function onNav(n) {
   if (!n || n.key === 'game') return
   if (n.key === 'me') { router.push('/me'); return }
   if (n.key === 'tasks') { router.push('/tasks'); return }
+  if (n.key === 'auction') {
+    router.push('/auction')
+    return
+  }
   if (n.key === 'shop') { router.push('/shop'); return }
   router.push({ path: '/home', query: { cat: n.key } })
 }
