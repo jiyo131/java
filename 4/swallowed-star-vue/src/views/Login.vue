@@ -1,5 +1,7 @@
 <template>
-  <main class="panel">
+  <!-- 开屏动画：每个浏览器会话仅播放一次，点击可跳过；播完再揭幕登录面板 -->
+  <SplashIntro v-if="showSplash" subtitle="红 线 已 牵 · 正 在 前 往 涂 山" @done="onSplashDone" />
+  <main v-else class="panel">
     <header class="brand">
       <div class="sigil">
         <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#ff9eb5" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
@@ -57,9 +59,17 @@ import { reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { login } from '../composables/useAuth.js'
 import { useToast } from '../composables/useToast.js'
+import SplashIntro from '../components/SplashIntro.vue'
 
 const router = useRouter()
 const { show } = useToast()
+
+/* ---- 过场动画控制：进入页面不播放；登录成功后播放，播完进首页 ---- */
+const showSplash = ref(false)
+function onSplashDone() {
+  showSplash.value = false
+  router.push('/home')
+}
 
 const form = reactive({ username: '', password: '' })
 const showPw = ref(false)
@@ -77,8 +87,9 @@ async function submit() {
   try {
     const success = await login(form.username, form.password)
     if (success) {
+      // 登录成功 → 播放「红线牵引」过场动画，播完后由 onSplashDone 进入首页
       show('红线已牵，正在前往涂山…', 'ok')
-      setTimeout(() => router.push('/home'), 1100)
+      showSplash.value = true
     }
   } catch (e) {
     errors.password = '账号或密钥错误'
