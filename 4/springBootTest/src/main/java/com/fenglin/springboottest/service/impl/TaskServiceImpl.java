@@ -4,13 +4,16 @@ import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.fenglin.springboottest.controller.dto.TaskAction;
 import com.fenglin.springboottest.controller.dto.TaskCard;
+import com.fenglin.springboottest.controller.dto.TaskLeaderboard;
 import com.fenglin.springboottest.controller.dto.TaskOverview;
 import com.fenglin.springboottest.entity.RedLineTask;
 import com.fenglin.springboottest.entity.TaskRecord;
+import com.fenglin.springboottest.entity.User;
 import com.fenglin.springboottest.entity.UserEmotion;
 import com.fenglin.springboottest.mapper.RedLineTaskMapper;
 import com.fenglin.springboottest.mapper.TaskRecordMapper;
 import com.fenglin.springboottest.mapper.UserEmotionMapper;
+import com.fenglin.springboottest.mapper.UserMapper;
 import com.fenglin.springboottest.service.TaskService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DuplicateKeyException;
@@ -22,6 +25,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -50,6 +54,9 @@ public class TaskServiceImpl extends ServiceImpl<RedLineTaskMapper, RedLineTask>
 
     @Autowired
     private UserEmotionMapper emotionMapper;
+
+    @Autowired
+    private UserMapper userMapper;
 
     @Override
     public TaskOverview overview(Long userId) {
@@ -89,6 +96,79 @@ public class TaskServiceImpl extends ServiceImpl<RedLineTaskMapper, RedLineTask>
         vo.setTasks(cards);
         vo.setServerTime(LocalDateTime.now().format(TIME_FMT));
         applyLevel(vo, vo.getEmotion());
+        return vo;
+    }
+
+    @Override
+    public TaskLeaderboard leaderboard(Long userId) {
+        // 按用户聚合「已圆满」记录数；取消接取记录已物理删除，不会被误统计。
+        List<Map<String, Object>> agg = recordMapper.selectMaps(Wrappers.<TaskRecord>query()
+                .select("user_id", "COUNT(*) AS cnt")
+                .eq("status", TaskRecord.STATUS_COMPLETED)
+                .groupBy("user_id"));
+
+        Map<Long, Integer> counts = new HashMap<>();
+        for (Map<String, Object> row : agg) {
+            Object uid = row.get("user_id");
+            Object cnt = row.get("cnt");
+            if (uid == null || cnt == null) {
+                continue;
+            }
+            counts.put(Long.valueOf(uid.toString()), Integer.valueOf(cnt.toString()));
+        }
+
+        // 正常用户（含停用过滤）+ 情绪值，拼出完整排行
+        Map<Long, User> users = new HashMap<>();
+        for (User user : userMapper.selectList(Wrappers.lambdaQuery(User.class)
+                .eq(User::getStatus, 1))) {
+            users.put(user.getId(), user);
+        }
+        Map<Long, UserEmotion> emotions = new HashMap<>();
+        for (UserEmotion emo : emotionMapper.selectList(null)) {
+            emotions.put(emo.getUserId(), emo);
+        }
+
+        List<TaskLeaderboard.RankRow> all = new ArrayList<>();
+        for (Map.Entry<Long, Integer> e : counts.entrySet()) {
+            User user = users.get(e.getKey());
+            if (user == null || e.getValue() <= 0) {
+                continue; // 已删除 / 停用用户不上榜
+            }
+            UserEmotion emo = emotions.get(e.getKey());
+            TaskLeaderboard.RankRow row = new TaskLeaderboard.RankRow();
+            row.setUserId(e.getKey());
+            row.setNickname(user.getNickname() == null || user.getNickname().isEmpty()
+                    ? user.getUsername() : user.getNickname());
+            row.setCompletedCount(e.getValue());
+            row.setEmotion(emo == null ? 0 : nvl(emo.getEmotion()));
+            row.setLevelTitle(LEVEL_TITLES[levelIndexOf(row.getEmotion())]);
+            all.add(row);
+        }
+        // 完成数多者优先；同数比累计情绪值；再比注册先后
+        all.sort(Comparator
+                .comparing((TaskLeaderboard.RankRow r) -> r.getCompletedCount()).reversed()
+                .thenComparing(Comparator.comparing((TaskLeaderboard.RankRow r) -> r.getEmotion()).reversed())
+                .thenComparing(r -> r.getUserId()));
+
+        TaskLeaderboard vo = new TaskLeaderboard();
+        int rank = 0;
+        for (TaskLeaderboard.RankRow row : all) {
+            row.setRank(++rank);
+            row.setMe(userId != null && userId.equals(row.getUserId()));
+        }
+        int limit = Math.min(10, all.size());
+        vo.setRows(new ArrayList<>(all.subList(0, limit)));
+        vo.setPlayerCount(all.size());
+        if (userId != null) {
+            for (TaskLeaderboard.RankRow row : all) {
+                if (userId.equals(row.getUserId())) {
+                    vo.setMyRank(row.getRank());
+                    break;
+                }
+            }
+            vo.setMyCompletedCount(counts.getOrDefault(userId, 0));
+        }
+        vo.setServerTime(LocalDateTime.now().format(TIME_FMT));
         return vo;
     }
 

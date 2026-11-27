@@ -57,8 +57,11 @@
       </div>
     </section>
 
-    <!-- 档案结果区 -->
+    <!-- 档案结果区（双栏：档案列表在左，人气榜固定在右） -->
     <section class="result-zone">
+      <div class="result-layout">
+      <!-- 左栏：检索头 + 分类 + 卡片 + 加载更多（整体作为 result-layout 的第一个子元素） -->
+      <div class="result-main">
       <div class="result-head">
         <h3 aria-live="polite">
           <template v-if="searched">检索「<b>{{ searched }}</b>」</template>
@@ -172,6 +175,11 @@
           <template v-else>— 已至卷末 · 共 {{ total }} 位 —</template>
         </button>
       </div>
+      </div>
+
+      <!-- 人气榜固定在右侧（≤1180px 移到档案区下方） -->
+      <EntryPopularity class="home-pb" @select="openCard" />
+      </div>
     </section>
   </main>
 
@@ -277,6 +285,7 @@ import { getSession, fetchMe, logout } from '../composables/useAuth.js'
 import { useToast } from '../composables/useToast.js'
 import { fetchOverview, fetchEntries, fetchEntryDetail } from '../api/home.js'
 import TopNav from '../components/TopNav.vue'
+import EntryPopularity from '../components/EntryPopularity.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -536,6 +545,8 @@ async function openCard(item) {
       if (idx >= 0) {
         results.value[idx] = { ...results.value[idx], viewCount: detail.viewCount }
       }
+      // 翻阅已累加浏览量，通知右侧「人气榜」就地刷新
+      window.dispatchEvent(new CustomEvent('entry-viewed', { detail: { id: detail.id } }))
     }
   } catch (e) {
     show(e.message || '档案详情加载失败', 'err')

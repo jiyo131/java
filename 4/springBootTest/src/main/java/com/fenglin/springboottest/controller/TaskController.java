@@ -2,6 +2,7 @@ package com.fenglin.springboottest.controller;
 
 import com.fenglin.springboottest.common.Result;
 import com.fenglin.springboottest.controller.dto.TaskAction;
+import com.fenglin.springboottest.controller.dto.TaskLeaderboard;
 import com.fenglin.springboottest.controller.dto.TaskOverview;
 import com.fenglin.springboottest.service.TaskService;
 import com.fenglin.springboottest.service.TokenStore;
@@ -36,6 +37,17 @@ public class TaskController {
             return Result.fail(401, "登录已失效，请重新登录后再接委托");
         }
         return Result.ok(taskService.overview(userId));
+    }
+
+    /** 圆满榜：按累计完成委托数排名（任务页右侧榜单） */
+    @GetMapping("/leaderboard")
+    public Result<TaskLeaderboard> leaderboard(
+            @RequestHeader(value = "Authorization", required = false) String authorization) {
+        Long userId = tokenStore.resolveUserId(authorization);
+        if (userId == null) {
+            return Result.fail(401, "登录已失效，请重新登录后再看圆满榜");
+        }
+        return Result.ok(taskService.leaderboard(userId));
     }
 
     /** 接取委托 */

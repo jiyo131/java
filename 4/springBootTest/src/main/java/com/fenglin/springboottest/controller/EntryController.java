@@ -56,6 +56,14 @@ public class EntryController {
     }
 
     /**
+     * 人气榜：按热度分 → 浏览量排名（首页右侧榜单，前端按序号渲染名次）。
+     */
+    @GetMapping("/popularity")
+    public Result<List<EntryCard>> popularity(@RequestParam(required = false, defaultValue = "8") int limit) {
+        return Result.ok(entryService.featured(limit));
+    }
+
+    /**
      * 档案详情（浏览量 +1）。
      */
     @GetMapping("/{id}")

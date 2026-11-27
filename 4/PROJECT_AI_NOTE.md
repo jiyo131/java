@@ -468,3 +468,64 @@ navs computed 末尾统一 push `{ key:'shop', label:'兑换商店' }`，TopNav 
   lint 0 error、vite build --emptyOutDir false 通过、mvn package 通过（先停 8081 java）。
 - 测试痕迹已复位：AU-TEST-* 拍品及其出价/成交留档删除、auctest01 账号及任务/情绪记录删除（剩 admin、skg）。
 - 脚本坑（再犯提醒）：① 测试脚本 BASE 已含 /api，路径别再写 /api/admin/...；② 中文 query 必须 quote。
+
+## 22. 拍卖行拍品图片（2026-11-27 开发并全链路验证）
+应需求为 6 件拍品生成商品图片，前台 /auction 与后台 /admin/auction 均展示。
+- 图片：`swallowed-star-vue/public/icons/au-lot-01.png ~ au-lot-06.png`（AI 生成，深紫底发光道具风，
+  与商店/任务图风格一致；大小约 1024x1024）。
+- 数据：`star_auction_lot.icon` 列（本就预留）填入 `/icons/au-lot-0N.png`；
+  data.sql 6 行同步 + 存量库已 UPDATE + data.sql 经 mysql 客户端实跑验证语法；
+  star_page_init.sql 已用 build_page_init.py 重新拼接（含 6 处图标路径）。
+- 前端：`AuctionPage.vue` 拍品卡 `shop-glyph` 改为「icon 图片优先、glyph 兜底」（仿 ShopPage，
+  img onerror 隐藏回退 emoji）；`AdminAuction.vue` 原本就支持 icon 图片，零改动。
+- 后端零改动（LotCard/AdminAuctionController 均已透出 icon 字段）。
+- 已验证（curl）：前台 /api/auction 与后台 /api/admin/auction/lots 均返回 6 条 icon 路径；
+  vite 下 /icons/au-lot-01.png 200；npm run lint 0 error。
+
+## 23. 红线仙任务「圆满榜」（2026-11-27 开发并全链路验证）
+任务页 /tasks 新增任务完成排行榜「圆满榜」，布局为双栏：告示板在左、榜单固定在右
+（≤1180px 榜单移到告示板下方，≤760px 沿用原有单列响应式）。
+
+- 后端：`GET /api/tasks/leaderboard`（登录态，401 走 body code 约定）。
+  `TaskService.leaderboard(userId)`：按 star_task_record（status=2）GROUP BY user_id 聚合完成数
+  （selectMaps，取消=物理删不会被误统计），联 star_user（status=1，已删/停用不上榜）与
+  star_user_emotion 取昵称/情绪值；排序 = 完成数 desc → 情绪值 desc → userId asc；
+  DTO `TaskLeaderboard`（rows≤10 + playerCount + myRank + myCompletedCount），
+  RankRow 带 rank/nickname/completedCount/emotion/levelTitle/me。
+- 前端：新组件 `src/components/TaskLeaderboard.vue`（奖牌前三 🥇🥈🥉、头像字、阶位徽章、
+  我的行金框高亮 + 「我」标、底部我的名次栏；30s 静默轮询 + 监听 `rl-task-settled` 窗口事件
+  就地刷新——RedLineTasks.vue 的 act() 成功后 dispatch）。`api/tasks.js` 加 fetchLeaderboard。
+  RedLineTaskPage.vue 改 `.tasks-layout` 双栏，style.css 新增 `.lb-*` 样式块
+  （沿用 --panel/--pink/--gold 令牌，含 ≤1180px 断点）。
+- 已验证（curl）：空榜 rows=[]、无 token 401、admin 完成 RL-001 后 rank1(+500 三世情缘 me=true)、
+  lbtest01 完成 2 桩后排序正确（3200 苦情之证 > 500）、myRank/playerCount 正确。
+  lint 0 error、vite build --emptyOutDir false 通过、mvn package 通过，后端已重启（8081）。
+- 测试痕迹已复位：star_task_record 清空、admin/star_user_emotion 归零、lbtest01 账号已删。
+
+## 24. 首页「人物人气榜」（2026-11-27 核查确认已上线）
+首页涂山人物志档案结果区右侧的「人物人气榜」，本次核查全链路验证通过、无需改动：
+- 布局：`.result-zone` 内 `.result-layout` 双栏（档案列表在左，`EntryPopularity` 组件固定右侧
+  296px sticky；≤1180px 移到档案区下方）。
+- 后端：`GET /api/entries/popularity?limit=8`（EntryController）→ featured()：status=1 按
+  hot_score desc → view_count desc 取前 N；EntryCard 含 avatar/category/categoryColor/hotScore/viewCount。
+  浏览量在详情接口 `/api/entries/{id}` 里自增（setSql 防并发丢计数）。
+- 前端：`components/EntryPopularity.vue`（🔥 招牌 + 🥇🥈🥉 + 头像图/分类徽标 + 「🔥 N 次翻阅」，
+  点行打开人物志弹窗；30s 静默轮询 + 详情弹窗关闭后 `entry-viewed` 窗口事件就地刷新）。
+  `api/home.js` fetchPopularity。样式 style.css `.pb-*` 块。
+- 验证：curl 接口返回 8 条带头像/热度数据（苏苏 hot100/1286 次居首）；lint 0 error、
+  vite build --emptyOutDir false 通过；5173 dev 服务正常，热更新已生效。
+
+## 25. 修复首页人物档案区布局（2026-11-27）
+用户反馈「恢复人物档案」——数据层（18 档案/4 分类/头像图）完好，真正问题在 Home.vue 模板：
+人气榜接线时 `.result-layout` 在 load-more 后被提前闭合，EntryPopularity 落到了容器外
+（全宽挤在档案区下方），而 result-head/subnav/卡片/加载更多成了 flex 容器的并列兄弟，
+整个档案区被横向挤成一行。
+- 修复：结果区内容包进 `<div class="result-main">`（成为 result-layout 第一个子元素，
+  吃到 `.result-layout > :first-child{flex:1}` 规则），EntryPopularity 移回容器内，
+  闭合顺序修正为 result-main → EntryPopularity → result-layout → section。
+- 验证（agent-browser 真实 Chrome，admin 登录）：12 张人物卡渲染正常、
+  result-main 912px（左）与 .home-pb 298px（右）双栏就位、人气榜可见；
+  vite build --emptyOutDir false、lint 0 error 通过。截图存 springBootTest/log/home_fixed.png。
+- 坑：agent-browser 守护进程在两次 CLI 调用之间会重启丢会话（登录态/refs 全丢），
+  必须把 open→type→click→screenshot 链在**同一条 bash 命令**里执行完；
+  screenshot 参数是位置参数 `screenshot <path> --full`，不是 --path。

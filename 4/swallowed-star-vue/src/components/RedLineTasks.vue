@@ -266,6 +266,8 @@ async function act(task, type) {
   } finally {
     busyId.value = null
   }
+  // 通知右侧「圆满榜」就地刷新（完成必影响名次，接取/取消仅同步时间戳）
+  window.dispatchEvent(new CustomEvent('rl-task-settled', { detail: { type } }))
 }
 
 // 完成委托时的情绪值飘字 + 卡片轻微脉动；升阶时额外点亮面板

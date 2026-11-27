@@ -24,3 +24,9 @@ export async function completeTask(id) {
   const res = await request('POST', `/tasks/${id}/complete`)
   return res.data
 }
+
+/** 圆满榜：按累计完成委托数排名（任务页右侧榜单） */
+export async function fetchLeaderboard() {
+  const res = await request('GET', '/tasks/leaderboard')
+  return res.data
+}

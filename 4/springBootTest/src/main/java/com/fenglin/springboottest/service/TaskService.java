@@ -2,6 +2,7 @@ package com.fenglin.springboottest.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.fenglin.springboottest.controller.dto.TaskAction;
+import com.fenglin.springboottest.controller.dto.TaskLeaderboard;
 import com.fenglin.springboottest.controller.dto.TaskOverview;
 import com.fenglin.springboottest.entity.RedLineTask;
 
@@ -12,6 +13,9 @@ public interface TaskService extends IService<RedLineTask> {
 
     /** 看板数据：任务列表（带当前用户状态）+ 情绪值 + 统计 */
     TaskOverview overview(Long userId);
+
+    /** 圆满榜：按累计完成委托数排名（同数比累计情绪值），带当前用户名次 */
+    TaskLeaderboard leaderboard(Long userId);
 
     /** 接取委托 */
     TaskAction accept(Long userId, Long taskId);

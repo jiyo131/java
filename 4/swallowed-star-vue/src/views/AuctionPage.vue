@@ -72,7 +72,10 @@
           :style="{ '--au-color': lot.color }"
         >
           <div class="shop-card-top">
-            <span class="shop-glyph" aria-hidden="true">{{ lot.glyph }}</span>
+            <span class="shop-glyph" aria-hidden="true">
+              <img v-if="lot.icon" :src="lot.icon" alt="" loading="lazy" @error="$event.target.style.display = 'none'" />
+              <template v-else>{{ lot.glyph }}</template>
+            </span>
             <em v-if="lot.mine" class="au-badge is-mine-badge">由我领先</em>
             <em v-else-if="lot.leaderName" class="au-badge">{{ lot.leaderName }} 领先</em>
             <em v-else class="au-badge is-open">虚位以待</em>

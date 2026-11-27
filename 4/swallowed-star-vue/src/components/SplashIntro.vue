@@ -1,5 +1,5 @@
 <template>
-  <div class="splash" :class="{ leaving }" @click="finish" aria-hidden="true">
+  <div class="splash" :class="{ leaving }" aria-hidden="true" @click="finish">
     <!-- 底层：暗幕 + 月晕 -->
     <div class="splash-vignette"></div>
     <div class="splash-moon"></div>
@@ -21,13 +21,16 @@
         <circle class="sp-glow" cx="340" cy="150" r="90" fill="url(#spHeartGlow)"/>
 
         <!-- 左侧红线（凡人） -->
-        <path class="sp-thread sp-left" pathLength="1"
+        <path
+class="sp-thread sp-left" pathLength="1"
               d="M -520 430 C -150 410, 150 258, 300 142 C 312 134, 318 128, 322 124"/>
         <!-- 右侧红线（妖） -->
-        <path class="sp-thread sp-right" pathLength="1"
+        <path
+class="sp-thread sp-right" pathLength="1"
               d="M 1200 430 C 830 410, 530 258, 380 142 C 368 134, 362 128, 358 124"/>
         <!-- 红线牵结 · 桃心 -->
-        <path class="sp-heart" pathLength="1"
+        <path
+class="sp-heart" pathLength="1"
               d="M 340 172 C 340 172, 312 150, 312 130 C 312 114, 328 106, 338 115 C 340 117, 340 121, 340 121 C 340 121, 340 117, 342 115 C 352 106, 368 114, 368 130 C 368 150, 340 172, 340 172 Z"/>
         <!-- 牵结光点 -->
         <circle class="sp-spark" cx="340" cy="121" r="4"/>

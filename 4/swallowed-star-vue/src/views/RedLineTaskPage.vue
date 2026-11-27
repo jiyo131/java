@@ -31,7 +31,10 @@
         </button>
       </nav>
 
-      <RedLineTasks />
+      <div class="tasks-layout">
+        <RedLineTasks />
+        <TaskLeaderboard class="tasks-lb" />
+      </div>
     </div>
   </main>
 </template>
@@ -41,6 +44,7 @@ import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import TopNav from '../components/TopNav.vue'
 import RedLineTasks from '../components/RedLineTasks.vue'
+import TaskLeaderboard from '../components/TaskLeaderboard.vue'
 import { getSession, fetchMe, logout } from '../composables/useAuth.js'
 import { useToast } from '../composables/useToast.js'
 import { fetchOverview } from '../api/home.js'

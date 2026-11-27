@@ -534,22 +534,22 @@ INSERT IGNORE INTO star_shop_item
 INSERT IGNORE INTO star_auction_lot
 (id, code, name, subtitle, description, glyph, icon, color, base_price, step, buyout_price, duration_min, tags, sort_no, status, current_price, leader_user_id, end_time) VALUES
 (1, 'AU-LOT-01', '苦情巨树的一缕情丝', '苦情树亲赐 · 万中挑一', '每整点由雅雅亲手从苦情巨树上摘下一缕最亮的情丝，装在琉璃匣里。传说握着它入睡，能梦见红线另一端的人此刻在做的事。',
- '🪢', NULL, '#ff9eb5', 60, 10, 300, 30, '情丝,苦情树,雅雅', 10, 1, 60, NULL, NOW() + INTERVAL 30 MINUTE),
+ '🪢', '/icons/au-lot-01.png', '#ff9eb5', 60, 10, 300, 30, '情丝,苦情树,雅雅', 10, 1, 60, NULL, NOW() + INTERVAL 30 MINUTE),
 
 (2, 'AU-LOT-02', '涂山苏苏的兔耳发饰（复刻版）', '三小姐同款 · 呆萌加倍', '苏苏那对毛耳朵的官方复刻发饰，戴上后连语气都会不自觉软三分。容容监修，每场拍卖只此一件，售出即绝版。',
- '🐰', NULL, '#ffc2cf', 120, 20, 600, 45, '兔耳,苏苏,复刻', 20, 1, 120, NULL, NOW() + INTERVAL 45 MINUTE),
+ '🐰', '/icons/au-lot-02.png', '#ffc2cf', 120, 20, 600, 45, '兔耳,苏苏,复刻', 20, 1, 120, NULL, NOW() + INTERVAL 45 MINUTE),
 
 (3, 'AU-LOT-03', '白月初的符笔', '毒舌道士的随身之物', '白月初画符用旧的笔，笔尖还残留着一点神火之气。据本人说「就是支普通破笔」，但一气道盟的人抢破了头。',
- '🖌', NULL, '#7fc7ff', 150, 20, 700, 60, '符笔,月初,神火', 30, 1, 150, NULL, NOW() + INTERVAL 60 MINUTE),
+ '🖌', '/icons/au-lot-03.png', '#7fc7ff', 150, 20, 700, 60, '符笔,月初,神火', 30, 1, 150, NULL, NOW() + INTERVAL 60 MINUTE),
 
 (4, 'AU-LOT-04', '王权剑断刃碎片', '王权富贵一剑的余威', '王权剑当年斩妖崩落的断刃，巴掌大小，握住时能听见隐约的剑鸣。红中姐验过货，说是真品，还替它讨了个好彩头。',
- '⚔', NULL, '#ffb35c', 200, 20, 900, 60, '王权剑,断刃,剑鸣', 40, 1, 200, NULL, NOW() + INTERVAL 60 MINUTE),
+ '⚔', '/icons/au-lot-04.png', '#ffb35c', 200, 20, 900, 60, '王权剑,断刃,剑鸣', 40, 1, 200, NULL, NOW() + INTERVAL 60 MINUTE),
 
 (5, 'AU-LOT-05', '虚空之泪 · 未镶坠版', '留不住的人，留得住一滴泪', '尚未镶坠的虚空之泪原石，蓝得像深夜的湖。镶坠要另付工钱，但懂行的人都知道，原石的念想比成品更重。',
- '💧', NULL, '#e09bff', 300, 30, 0, 90, '虚空之泪,原石,念想', 50, 1, 300, NULL, NOW() + INTERVAL 90 MINUTE),
+ '💧', '/icons/au-lot-05.png', '#e09bff', 300, 30, 0, 90, '虚空之泪,原石,念想', 50, 1, 300, NULL, NOW() + INTERVAL 90 MINUTE),
 
 (6, 'AU-LOT-06', '续缘术演示名额', '容容亲授 · 全场压轴', '涂山不外传的看家法术演示名额一个，由容容亲自讲解原理（不含实操）。每季只开一场，价高者得，雅雅还附赠一杯苦情树茶。',
- '🧵', NULL, '#ff5c7a', 500, 50, 2000, 120, '续缘术,容容,名额', 60, 1, 500, NULL, NOW() + INTERVAL 120 MINUTE);
+ '🧵', '/icons/au-lot-06.png', '#ff5c7a', 500, 50, 2000, 120, '续缘术,容容,名额', 60, 1, 500, NULL, NOW() + INTERVAL 120 MINUTE);
 
 -- ============================================================================
 -- 演示账号 admin / 123456（明文密码，permission=0 管理员权限）

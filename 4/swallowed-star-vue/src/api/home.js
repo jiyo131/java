@@ -48,3 +48,9 @@ export async function fetchHotWords(limit = 8) {
   const res = await request('GET', '/search/hot', { params: { limit } })
   return res.data || []
 }
+
+/** 人物人气榜：按热度分 → 浏览量排名（首页右侧榜单） */
+export async function fetchPopularity(limit = 8) {
+  const res = await request('GET', '/entries/popularity', { params: { limit } })
+  return res.data || []
+}
